@@ -135,17 +135,33 @@ function voidairo_primary_image_url($size = 'voidairo-cover') {
     return $custom_logo_id ? wp_get_attachment_image_url($custom_logo_id, 'full') : '';
 }
 
+function voidairo_canonical_url() {
+    if (is_404()) { return ''; }
+    if (is_singular()) { return get_permalink(get_queried_object_id()); }
+    if (is_search()) { return is_paged() ? get_pagenum_link((int) get_query_var('paged')) : get_search_link(); }
+    if (is_front_page() || is_home()) { return is_paged() ? get_pagenum_link((int) get_query_var('paged')) : home_url('/'); }
+    if (is_category() || is_tag() || is_tax()) {
+        $term = get_queried_object();
+        $url = $term ? get_term_link($term) : '';
+        return is_paged() ? get_pagenum_link((int) get_query_var('paged')) : (is_wp_error($url) ? '' : $url);
+    }
+    if (is_author()) { return is_paged() ? get_pagenum_link((int) get_query_var('paged')) : get_author_posts_url(get_queried_object_id()); }
+    if (is_post_type_archive()) { return is_paged() ? get_pagenum_link((int) get_query_var('paged')) : get_post_type_archive_link(get_query_var('post_type')); }
+    if (is_date()) { return get_pagenum_link(max(1, (int) get_query_var('paged'))); }
+    return get_pagenum_link(max(1, (int) get_query_var('paged')));
+}
+
 function voidairo_head_meta() {
     $desc = voidairo_meta_description();
     $title = wp_get_document_title();
-    $url = is_singular() ? get_permalink() : home_url(add_query_arg(array(), $GLOBALS['wp']->request ?? ''));
+    $url = voidairo_canonical_url();
     $image = voidairo_primary_image_url();
     echo "\n<meta name=\"description\" content=\"" . esc_attr($desc) . "\">\n";
-    echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
+    if ($url) { echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n"; }
     echo '<meta property="og:type" content="' . (is_singular() ? 'article' : 'website') . '">' . "\n";
     echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
     echo '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
-    echo '<meta property="og:url" content="' . esc_url($url) . '">' . "\n";
+    if ($url) { echo '<meta property="og:url" content="' . esc_url($url) . '">' . "\n"; }
     echo '<meta name="twitter:card" content="' . ($image ? 'summary_large_image' : 'summary') . '">' . "\n";
     if ($image) { echo '<meta property="og:image" content="' . esc_url($image) . '">' . "\n"; }
 }
@@ -194,6 +210,17 @@ function voidairo_meta_keys() {
     return array('date', 'author', 'category', 'views', 'likes', 'comments');
 }
 
+function voidairo_meta_labels() {
+    return array(
+        'date' => __('日期', 'voidairo'),
+        'author' => __('作者', 'voidairo'),
+        'category' => __('分类', 'voidairo'),
+        'views' => __('浏览量', 'voidairo'),
+        'likes' => __('点赞', 'voidairo'),
+        'comments' => __('评论', 'voidairo'),
+    );
+}
+
 function voidairo_meta_order() {
     $raw = (string) voidairo_option_value('meta_order', 'date,author,category,views,likes,comments');
     $parts = preg_split('/[\s,，|]+/u', $raw);
@@ -236,12 +263,37 @@ function voidairo_like_button($post_id = null) {
     echo '<button class="voidairo-like" type="button" data-post-id="' . esc_attr($post_id) . '" aria-label="' . esc_attr__('Like this post', 'voidairo') . '"><span aria-hidden="true">♡</span><strong>' . esc_html(number_format_i18n(voidairo_get_likes($post_id))) . '</strong></button>';
 }
 
+function voidairo_like_fingerprint($post_id) {
+    $user = get_current_user_id();
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+    $ua = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '';
+    return substr(wp_hash($post_id . '|' . ($user ? 'u:' . $user : 'ip:' . $ip . '|ua:' . $ua)), 0, 20);
+}
+
 function voidairo_ajax_like() {
     check_ajax_referer('voidairo_like', 'nonce');
     $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-    if (!$post_id || 'publish' !== get_post_status($post_id)) { wp_send_json_error(array('message' => __('Invalid post.', 'voidairo')), 400); }
-    $likes = voidairo_get_likes($post_id) + 1;
+    if (!$post_id || 'publish' !== get_post_status($post_id)) { wp_send_json_error(array('message' => __('Invalid post.', 'voidairo'), 'likes' => voidairo_get_likes($post_id)), 400); }
+
+    $fingerprint = voidairo_like_fingerprint($post_id);
+    $lock_key = 'voidairo_like_lock_' . $post_id . '_' . $fingerprint;
+    $rate_key = 'voidairo_like_rate_' . substr($fingerprint, 0, 12);
+    $current_likes = voidairo_get_likes($post_id);
+
+    if (get_transient($lock_key) || !empty($_COOKIE['voidairo_liked_' . $post_id])) {
+        wp_send_json_error(array('message' => __('你已经点过赞了。', 'voidairo'), 'likes' => $current_likes), 429);
+    }
+
+    $rate = (int) get_transient($rate_key);
+    if ($rate >= 10) {
+        wp_send_json_error(array('message' => __('点赞太频繁，请稍后再试。', 'voidairo'), 'likes' => $current_likes), 429);
+    }
+    set_transient($rate_key, $rate + 1, MINUTE_IN_SECONDS);
+    set_transient($lock_key, 1, DAY_IN_SECONDS);
+
+    $likes = $current_likes + 1;
     update_post_meta($post_id, '_voidairo_likes', $likes);
+    setcookie('voidairo_liked_' . $post_id, '1', time() + YEAR_IN_SECONDS, COOKIEPATH ?: '/', COOKIE_DOMAIN, is_ssl(), true);
     wp_send_json_success(array('likes' => $likes));
 }
 add_action('wp_ajax_voidairo_like', 'voidairo_ajax_like');
@@ -272,6 +324,11 @@ add_action('admin_menu', 'voidairo_admin_menu');
 function voidairo_admin_assets($hook) {
     if ('appearance_page_voidairo-settings' !== $hook) { return; }
     wp_enqueue_media();
+    $ver = wp_get_theme()->get('Version');
+    wp_enqueue_script('voidairo-admin-settings', get_template_directory_uri() . '/assets/js/admin-settings.js', array('jquery'), $ver, true);
+    wp_register_style('voidairo-admin-settings', false, array(), $ver);
+    wp_enqueue_style('voidairo-admin-settings');
+    wp_add_inline_style('voidairo-admin-settings', '.voidairo-meta-sorter{display:flex;flex-wrap:wrap;gap:10px;max-width:760px}.voidairo-meta-item{display:inline-flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid #ccd0d4;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:grab}.voidairo-meta-item.is-disabled{opacity:.48;background:#f0f0f1}.voidairo-meta-item.is-dragging{opacity:.7;cursor:grabbing}.voidairo-meta-item button{min-width:28px;height:28px;padding:0;border-radius:999px}.voidairo-meta-label{font-weight:600}.voidairo-meta-position{min-width:1.4em;color:#646970;text-align:center}');
 }
 add_action('admin_enqueue_scripts', 'voidairo_admin_assets');
 
@@ -279,14 +336,19 @@ function voidairo_sanitize_options($input) {
     $input = is_array($input) ? $input : array();
     $defaults = voidairo_defaults();
     $output = array();
-    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'show_read_more');
+    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_read_more');
     foreach ($boolean_keys as $key) { $output[$key] = !empty($input[$key]); }
+    $output['show_card_meta'] = true; // Legacy option: meta_order now controls whether meta is shown.
     $output['hero_image'] = isset($input['hero_image']) ? esc_url_raw(trim(wp_unslash($input['hero_image']))) : '';
     $output['hero_image_id'] = isset($input['hero_image_id']) ? absint($input['hero_image_id']) : 0;
-    $meta_order = isset($input['meta_order']) ? sanitize_text_field(wp_unslash($input['meta_order'])) : $defaults['meta_order'];
-    $meta_parts = preg_split('/[\s,，|]+/u', $meta_order);
     $meta_clean = array();
-    foreach ($meta_parts as $part) {
+    if (isset($input['meta_order']) && is_array($input['meta_order'])) {
+        $meta_parts = array_map('sanitize_key', wp_unslash($input['meta_order']));
+    } else {
+        $meta_order = isset($input['meta_order']) ? sanitize_text_field(wp_unslash($input['meta_order'])) : $defaults['meta_order'];
+        $meta_parts = preg_split('/[\s,，|]+/u', $meta_order);
+    }
+    foreach ((array) $meta_parts as $part) {
         $key = sanitize_key($part);
         if (in_array($key, voidairo_meta_keys(), true) && !in_array($key, $meta_clean, true)) { $meta_clean[] = $key; }
     }
@@ -338,7 +400,6 @@ function voidairo_settings_page() {
     if (!current_user_can('edit_theme_options')) { return; }
     $opts = voidairo_options();
     $checks = array(
-        'show_card_meta' => '首页/列表文章显示元信息区域',
         'show_read_more' => '首页/列表文章显示 Read more 按钮',
         'pjax' => '启用 PJAX 页面无刷新切换（如果站点闪烁或异常可关闭）',
         'ajax_comments' => '启用 AJAX 评论',
@@ -368,7 +429,15 @@ function voidairo_settings_page() {
     foreach ($font_presets as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['font_preset'], $key, false) . '>' . esc_html($label) . '</option>'; }
     echo '</select></td></tr></tbody></table>';
     echo '<h2>显示与功能开关</h2><table class="form-table" role="presentation"><tbody>';
-    echo '<tr><th scope="row"><label for="voidairo_meta_order">元信息显示与排序</label></th><td><input id="voidairo_meta_order" class="regular-text" type="text" name="voidairo_options[meta_order]" value="' . esc_attr($opts['meta_order']) . '" placeholder="date,author,category,views,likes,comments" list="voidairo-meta-presets"><datalist id="voidairo-meta-presets"><option value="date,author,category,views,likes,comments"><option value="date,category,views,likes"><option value="date,author,category"><option value="date,views,comments"><option value="date"></datalist><p class="description">一行设置要显示的项目和顺序，逗号分隔。可用：date 日期、author 作者、category 分类、views 浏览量、likes 点赞、comments 评论。留空则不显示。</p></td></tr>';
+    $meta_labels = voidairo_meta_labels();
+    $ordered_meta = voidairo_meta_order();
+    $meta_items = array_merge($ordered_meta, array_values(array_diff(array_keys($meta_labels), $ordered_meta)));
+    echo '<tr><th scope="row">元信息显示与排序</th><td><div id="voidairo-meta-sorter" class="voidairo-meta-sorter" aria-label="元信息显示与排序">';
+    foreach ($meta_items as $meta_key) {
+        $enabled = in_array($meta_key, $ordered_meta, true);
+        echo '<div class="voidairo-meta-item' . (!$enabled ? ' is-disabled' : '') . '" draggable="true" data-key="' . esc_attr($meta_key) . '"><span class="voidairo-meta-position"></span><label><input class="voidairo-meta-enabled" type="checkbox" ' . checked($enabled, true, false) . '> <span class="voidairo-meta-label">' . esc_html($meta_labels[$meta_key]) . '</span></label><input type="hidden" name="voidairo_options[meta_order][]" value="' . esc_attr($meta_key) . '" ' . disabled(!$enabled, true, false) . '><button type="button" class="button voidairo-meta-move-up" aria-label="上移">↑</button><button type="button" class="button voidairo-meta-move-down" aria-label="下移">↓</button></div>';
+    }
+    echo '</div><p class="description">点亮表示启用，点灰表示不显示；可拖动排序，也可用 ↑/↓ 调整。全部点灰则前台不显示元信息。</p></td></tr>';
     foreach ($checks as $key => $label) {
         echo '<tr><th scope="row">' . esc_html($label) . '</th><td><label><input type="checkbox" name="voidairo_options[' . esc_attr($key) . ']" value="1" ' . checked(!empty($opts[$key]), true, false) . '> 启用</label></td></tr>';
     }
@@ -376,7 +445,7 @@ function voidairo_settings_page() {
     submit_button('保存设置');
     echo '</form><hr><h2>主题更新</h2>';
     voidairo_render_manual_update_box();
-    echo '<script>(function($){$(function(){var frame;$("#voidairo-pick-hero").on("click",function(e){e.preventDefault();if(frame){frame.open();return;}frame=wp.media({title:"选择首页顶部大图",button:{text:"使用这张图片"},multiple:false});frame.on("select",function(){var a=frame.state().get("selection").first().toJSON();$("#voidairo_hero_image").val(a.url);$("#voidairo_hero_image_id").val(a.id);$("#voidairo-hero-preview").html("<img src=\""+a.url+"\" style=\"max-width:100%;height:auto;border-radius:8px\">");});frame.open();});$("#voidairo-clear-hero").on("click",function(e){e.preventDefault();$("#voidairo_hero_image,#voidairo_hero_image_id").val("");$("#voidairo-hero-preview").empty();});});})(jQuery);</script></div>';
+    echo '</div>';
 }
 
 function voidairo_fallback_menu() {
@@ -538,7 +607,14 @@ add_filter('comment_form_defaults', 'voidairo_comment_form_defaults');
 function voidairo_github_release() {
     $cached = get_site_transient('voidairo_github_release');
     if (false !== $cached) { return $cached; }
-    $res = wp_remote_get('https://api.github.com/repos/viuku/voidairo/releases/latest', array('timeout' => 6, 'headers' => array('Accept' => 'application/vnd.github+json')));
+    $version = wp_get_theme()->get('Version');
+    $res = wp_remote_get('https://api.github.com/repos/viuku/voidairo/releases/latest', array(
+        'timeout' => 6,
+        'headers' => array(
+            'Accept' => 'application/vnd.github+json',
+            'User-Agent' => 'VOIDairo/' . $version . '; WordPress',
+        ),
+    ));
     if (is_wp_error($res) || 200 !== wp_remote_retrieve_response_code($res)) {
         set_site_transient('voidairo_github_release', null, HOUR_IN_SECONDS * 6);
         return null;
@@ -548,6 +624,57 @@ function voidairo_github_release() {
     return is_array($data) ? $data : null;
 }
 
+function voidairo_find_release_package($release, $latest = '') {
+    $fallback = '';
+    $exact = '';
+    $versioned = '';
+    if (!empty($release['assets']) && is_array($release['assets'])) {
+        foreach ($release['assets'] as $asset) {
+            $name = isset($asset['name']) ? (string) $asset['name'] : '';
+            $url = $asset['browser_download_url'] ?? '';
+            if (!$name || !$url || !preg_match('/^voidairo(?:[-_]?v?\d+(?:\.\d+){0,3}(?:[-_.a-z0-9]*)?)?\.zip$/i', $name)) { continue; }
+            if (!$fallback) { $fallback = $url; }
+            if ('voidairo.zip' === strtolower($name)) { $exact = $url; }
+            if ($latest && false !== stripos($name, $latest)) { $versioned = $url; }
+        }
+    }
+    if ($versioned) { return $versioned; }
+    if ($exact) { return $exact; }
+    if ($fallback) { return $fallback; }
+    return !empty($release['zipball_url']) ? $release['zipball_url'] : '';
+}
+
+function voidairo_normalize_release_notes($body) {
+    $body = (string) $body;
+    $body = str_replace(array('\\r\\n', '\\n', '\\r'), "\n", $body);
+    $body = preg_replace('/(?<=[\x{4e00}-\x{9fff}])\.\s*\n/u', "。\n", $body);
+    $lines = array_filter(array_map('trim', preg_split('/\R/u', wp_strip_all_tags($body))));
+    if (!$lines) { return '<p>查看 GitHub Release 获取更新说明。</p>'; }
+    $out = '';
+    foreach ($lines as $line) { $out .= '<p>' . esc_html($line) . '</p>'; }
+    return $out;
+}
+
+function voidairo_themes_api($result, $action, $args) {
+    if ('theme_information' !== $action || empty($args->slug) || get_stylesheet() !== $args->slug) { return $result; }
+    $release = voidairo_github_release();
+    if (!$release || empty($release['tag_name'])) { return $result; }
+    $latest = ltrim((string) $release['tag_name'], 'v');
+    $info = new stdClass();
+    $info->name = wp_get_theme()->get('Name');
+    $info->slug = get_stylesheet();
+    $info->version = $latest;
+    $info->author = wp_get_theme()->get('Author');
+    $info->homepage = $release['html_url'] ?? 'https://github.com/viuku/voidairo';
+    $info->download_link = voidairo_find_release_package($release, $latest);
+    $info->sections = array(
+        'description' => '<p>VOIDairo 通过 GitHub Release 提供主题更新。</p>',
+        'changelog' => voidairo_normalize_release_notes($release['body'] ?? ''),
+    );
+    return $info;
+}
+add_filter('themes_api', 'voidairo_themes_api', 10, 3);
+
 function voidairo_update_themes($transient) {
     if (empty($transient->checked) || !isset($transient->checked[get_stylesheet()])) { return $transient; }
     $release = voidairo_github_release();
@@ -555,13 +682,7 @@ function voidairo_update_themes($transient) {
     $latest = ltrim((string) $release['tag_name'], 'v');
     $current = wp_get_theme()->get('Version');
     if (!version_compare($latest, $current, '>')) { return $transient; }
-    $package = '';
-    if (!empty($release['assets'])) {
-        foreach ($release['assets'] as $asset) {
-            if (!empty($asset['name']) && 'voidairo.zip' === $asset['name'] && !empty($asset['browser_download_url'])) { $package = $asset['browser_download_url']; break; }
-        }
-    }
-    if (!$package && !empty($release['zipball_url'])) { $package = $release['zipball_url']; }
+    $package = voidairo_find_release_package($release, $latest);
     $transient->response[get_stylesheet()] = array(
         'theme' => get_stylesheet(),
         'new_version' => $latest,
@@ -571,3 +692,10 @@ function voidairo_update_themes($transient) {
     return $transient;
 }
 add_filter('pre_set_site_transient_update_themes', 'voidairo_update_themes');
+
+function voidairo_flush_archives_cache() {
+    delete_transient('voidairo_archives_html');
+}
+add_action('save_post_post', 'voidairo_flush_archives_cache');
+add_action('deleted_post', 'voidairo_flush_archives_cache');
+add_action('transition_post_status', 'voidairo_flush_archives_cache');

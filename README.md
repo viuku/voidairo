@@ -71,7 +71,8 @@ docker run --rm --volumes-from wptheme-wordpress-1 --network wptheme_default -u 
 
 ```bash
 cd /path/to/voidairo
-zip -qr ../voidairo.zip . -x@.distignore
+VERSION=$(grep -m1 "^Version:" style.css | awk '{print $2}')
+zip -qr ../voidairo-${VERSION}.zip . -x@.distignore
 ```
 
 ## License

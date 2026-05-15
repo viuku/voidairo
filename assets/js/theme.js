@@ -114,7 +114,17 @@
         try {
           const res = await fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body });
           const json = await res.json();
-          if (!json.success) throw new Error(json.data && json.data.message || 'like failed');
+          if (!json.success) {
+            if (json.data && typeof json.data.likes !== 'undefined') {
+              btn.querySelector('strong').textContent = json.data.likes;
+              if (res.status === 429) {
+                btn.classList.add('is-liked');
+                if (heart) heart.textContent = '♥';
+                localStorage.setItem(`voidairo-liked-${postId}`, '1');
+              }
+            }
+            throw new Error(json.data && json.data.message || 'like failed');
+          }
           btn.querySelector('strong').textContent = json.data.likes;
           btn.classList.add('is-liked');
           if (heart) heart.textContent = '♥';
@@ -174,13 +184,32 @@
 
   function shouldPjax(anchor) {
     if (cfg.options.pjax === false || !anchor || anchor.target || anchor.hasAttribute('download')) return false;
-    if (anchor.closest('#wpadminbar, .comment-reply-link')) return false;
+    if (anchor.closest('#wpadminbar, .comment-reply-link, .no-pjax, [data-no-pjax], .archive-list')) return false;
     const url = new URL(anchor.href, location.href);
     if (url.origin !== location.origin) return false;
     if (url.pathname === location.pathname && url.search === location.search && url.hash) return false;
     if (url.pathname.includes('/wp-admin') || url.pathname.includes('/wp-login.php')) return false;
     if (/\.(zip|rar|7z|pdf|jpg|jpeg|png|gif|webp|mp4|mp3)$/i.test(url.pathname)) return false;
     return true;
+  }
+
+  function syncHeadMeta(doc) {
+    const selectors = [
+      'link[rel="canonical"]',
+      'meta[name="description"]',
+      'meta[property="og:title"]',
+      'meta[property="og:description"]',
+      'meta[property="og:url"]',
+      'meta[property="og:image"]',
+      'meta[name="twitter:card"]'
+    ];
+    selectors.forEach((selector) => {
+      const current = document.head.querySelector(selector);
+      const next = doc.head.querySelector(selector);
+      if (current && next) current.replaceWith(next.cloneNode(true));
+      else if (current && !next) current.remove();
+      else if (!current && next) document.head.appendChild(next.cloneNode(true));
+    });
   }
 
   async function pjaxVisit(url, push = true) {
@@ -202,6 +231,7 @@
       if (currentNav && nextNav) currentNav.replaceWith(nextNav);
       currentMain.replaceWith(nextMain);
       document.title = doc.title;
+      syncHeadMeta(doc);
       document.body.className = doc.body.className;
       document.body.classList.remove('nav-open');
       const navToggle = document.querySelector('.nav-toggle');
