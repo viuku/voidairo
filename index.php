@@ -9,7 +9,6 @@ $hero_subtitle = function_exists('voidairo_option_value') && voidairo_option_val
     <div class="hero-card__content">
       <h1 id="hero-title"><?php echo esc_html($hero_title); ?></h1>
       <p><?php echo esc_html($hero_subtitle); ?></p>
-      <div class="hero-meta"><span class="pill">响应式</span><span class="pill">深色模式</span><span class="pill">SEO 优化</span></div>
     </div>
   </div>
 </section>

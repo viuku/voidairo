@@ -6,6 +6,7 @@ function voidairo_defaults() {
     return array(
         'serif' => false,
         'auto_dark' => true,
+        'dark_mode' => 'system',
         'pjax' => true,
         'ajax_comments' => true,
         'toc' => true,
@@ -13,8 +14,15 @@ function voidairo_defaults() {
         'views' => true,
         'mac_code' => true,
         'show_card_meta' => true,
+        'meta_date' => true,
+        'meta_author' => true,
+        'meta_category' => true,
+        'meta_views' => true,
+        'meta_likes' => true,
+        'meta_comments' => true,
         'show_read_more' => true,
         'hero_image' => '',
+        'hero_image_id' => 0,
         'hero_title' => '',
         'hero_subtitle' => '',
         'font_preset' => 'void',
@@ -82,6 +90,7 @@ function voidairo_scripts() {
             'ajaxComments' => (bool) $opts['ajax_comments'],
             'toc' => (bool) $opts['toc'],
             'autoDark' => (bool) $opts['auto_dark'],
+            'darkMode' => in_array($opts['dark_mode'] ?? 'system', array('system', 'dark', 'light'), true) ? $opts['dark_mode'] : 'system',
             'likes' => (bool) $opts['likes'],
         ),
         'i18n' => array(
@@ -181,15 +190,30 @@ function voidairo_track_view() {
 add_action('template_redirect', 'voidairo_track_view');
 
 function voidairo_post_meta() {
-    echo '<div class="post-meta">';
-    echo '<time datetime="' . esc_attr(get_the_date(DATE_W3C)) . '">' . esc_html(get_the_date()) . '</time>';
-    echo '<span aria-hidden="true">•</span><span>' . esc_html(get_the_author()) . '</span>';
-    $cats = get_the_category_list(', ');
-    if ($cats) { echo '<span aria-hidden="true">•</span><span>' . wp_kses_post($cats) . '</span>'; }
-    if (voidairo_option('views')) { echo '<span aria-hidden="true">•</span><span>' . sprintf(esc_html__('%s views', 'voidairo'), esc_html(number_format_i18n(voidairo_get_views()))) . '</span>'; }
-    if (voidairo_option('likes')) { echo '<span aria-hidden="true">•</span><span>' . sprintf(esc_html__('%s likes', 'voidairo'), esc_html(number_format_i18n(voidairo_get_likes()))) . '</span>'; }
-    if (!post_password_required() && comments_open()) { echo '<span aria-hidden="true">•</span><span>'; comments_popup_link(__('No comments', 'voidairo'), __('1 comment', 'voidairo'), __('% comments', 'voidairo')); echo '</span>'; }
-    echo '</div>';
+    $items = array();
+    if (voidairo_option('meta_date')) {
+        $items[] = '<time datetime="' . esc_attr(get_the_date(DATE_W3C)) . '">' . esc_html(get_the_date()) . '</time>';
+    }
+    if (voidairo_option('meta_author')) {
+        $items[] = '<span>' . esc_html(get_the_author()) . '</span>';
+    }
+    if (voidairo_option('meta_category')) {
+        $cats = get_the_category_list(', ');
+        if ($cats) { $items[] = '<span>' . wp_kses_post($cats) . '</span>'; }
+    }
+    if (voidairo_option('views') && voidairo_option('meta_views')) {
+        $items[] = '<span>' . sprintf(esc_html__('%s views', 'voidairo'), esc_html(number_format_i18n(voidairo_get_views()))) . '</span>';
+    }
+    if (voidairo_option('likes') && voidairo_option('meta_likes')) {
+        $items[] = '<span>' . sprintf(esc_html__('%s likes', 'voidairo'), esc_html(number_format_i18n(voidairo_get_likes()))) . '</span>';
+    }
+    if (voidairo_option('meta_comments') && !post_password_required() && comments_open()) {
+        ob_start();
+        comments_popup_link(__('No comments', 'voidairo'), __('1 comment', 'voidairo'), __('% comments', 'voidairo'));
+        $items[] = '<span>' . ob_get_clean() . '</span>';
+    }
+    if (!$items) { return; }
+    echo '<div class="post-meta">' . implode('<span aria-hidden="true">•</span>', $items) . '</div>';
 }
 
 function voidairo_like_button($post_id = null) {
@@ -230,13 +254,23 @@ function voidairo_admin_menu() {
 }
 add_action('admin_menu', 'voidairo_admin_menu');
 
+
+function voidairo_admin_assets($hook) {
+    if ('appearance_page_voidairo-settings' !== $hook) { return; }
+    wp_enqueue_media();
+}
+add_action('admin_enqueue_scripts', 'voidairo_admin_assets');
+
 function voidairo_sanitize_options($input) {
     $input = is_array($input) ? $input : array();
     $defaults = voidairo_defaults();
     $output = array();
-    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'show_read_more');
+    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'meta_date', 'meta_author', 'meta_category', 'meta_views', 'meta_likes', 'meta_comments', 'show_read_more');
     foreach ($boolean_keys as $key) { $output[$key] = !empty($input[$key]); }
     $output['hero_image'] = isset($input['hero_image']) ? esc_url_raw(trim(wp_unslash($input['hero_image']))) : '';
+    $output['hero_image_id'] = isset($input['hero_image_id']) ? absint($input['hero_image_id']) : 0;
+    $dark = isset($input['dark_mode']) ? sanitize_key(wp_unslash($input['dark_mode'])) : $defaults['dark_mode'];
+    $output['dark_mode'] = in_array($dark, array('system', 'dark', 'light'), true) ? $dark : $defaults['dark_mode'];
     $output['hero_title'] = isset($input['hero_title']) ? sanitize_text_field(wp_unslash($input['hero_title'])) : '';
     $output['hero_subtitle'] = isset($input['hero_subtitle']) ? sanitize_text_field(wp_unslash($input['hero_subtitle'])) : '';
     $font = isset($input['font_preset']) ? sanitize_key(wp_unslash($input['font_preset'])) : $defaults['font_preset'];
@@ -253,10 +287,15 @@ function voidairo_settings_page() {
     if (!current_user_can('edit_theme_options')) { return; }
     $opts = voidairo_options();
     $checks = array(
-        'show_card_meta' => '首页/列表文章显示元信息（日期、作者、分类、浏览、点赞、评论）',
+        'show_card_meta' => '首页/列表文章显示元信息区域',
+        'meta_date' => '元信息：显示日期',
+        'meta_author' => '元信息：显示作者',
+        'meta_category' => '元信息：显示分类',
+        'meta_views' => '元信息：显示浏览量',
+        'meta_likes' => '元信息：显示点赞数',
+        'meta_comments' => '元信息：显示评论数',
         'show_read_more' => '首页/列表文章显示 Read more 按钮',
-        'auto_dark' => '默认跟随系统深色模式',
-        'pjax' => '启用 PJAX 页面无刷新切换（如果导航异常可关闭）',
+        'pjax' => '启用 PJAX 页面无刷新切换（如果站点闪烁或异常可关闭）',
         'ajax_comments' => '启用 AJAX 评论',
         'toc' => '文章页自动生成目录',
         'likes' => '启用文章点赞',
@@ -270,14 +309,17 @@ function voidairo_settings_page() {
         'serif' => '衬线阅读：思源宋体/Noto Serif SC 优先',
         'chinese' => '中文屏显：苹方/微软雅黑优先',
     );
+    $dark_modes = array('system' => '跟随系统', 'dark' => '始终深色', 'light' => '始终浅色');
     echo '<div class="wrap"><h1>VOIDairo 主题设置</h1><p>参考 VOID 的核心设置重新整理：顶部大图、颜色/字体、PJAX、目录、评论、代码块和首页显示项。</p><form method="post" action="options.php">';
     settings_fields('voidairo_settings');
     echo '<h2>首页顶部大图</h2><table class="form-table" role="presentation"><tbody>';
-    echo '<tr><th scope="row"><label for="voidairo_hero_image">首页顶部大图 URL</label></th><td><input id="voidairo_hero_image" class="regular-text" type="url" name="voidairo_options[hero_image]" value="' . esc_attr($opts['hero_image']) . '" placeholder="https://example.com/banner.jpg"><p class="description">留空时使用渐变背景；可以填写图片或随机图 API。</p></td></tr>';
+    echo '<tr><th scope="row"><label for="voidairo_hero_image">首页顶部大图</label></th><td><input id="voidairo_hero_image" class="regular-text" type="url" name="voidairo_options[hero_image]" value="' . esc_attr($opts['hero_image']) . '" placeholder="https://example.com/banner.jpg"> <input id="voidairo_hero_image_id" type="hidden" name="voidairo_options[hero_image_id]" value="' . esc_attr((int) $opts['hero_image_id']) . '"> <button type="button" class="button" id="voidairo-pick-hero">从媒体库选择/上传</button> <button type="button" class="button" id="voidairo-clear-hero">清除</button><p class="description">可手动填写图片 URL，也可直接从 WordPress 媒体库选择或上传。</p><div id="voidairo-hero-preview" style="margin-top:10px;max-width:360px">' . (!empty($opts['hero_image']) ? '<img src="' . esc_url($opts['hero_image']) . '" style="max-width:100%;height:auto;border-radius:8px">' : '') . '</div></td></tr>';
     echo '<tr><th scope="row"><label for="voidairo_hero_title">首页顶部大标题</label></th><td><input id="voidairo_hero_title" class="regular-text" type="text" name="voidairo_options[hero_title]" value="' . esc_attr($opts['hero_title']) . '" placeholder="' . esc_attr(get_bloginfo('name')) . '"></td></tr>';
     echo '<tr><th scope="row"><label for="voidairo_hero_subtitle">首页顶部小标题</label></th><td><input id="voidairo_hero_subtitle" class="regular-text" type="text" name="voidairo_options[hero_subtitle]" value="' . esc_attr($opts['hero_subtitle']) . '" placeholder="' . esc_attr(get_bloginfo('description')) . '"></td></tr>';
     echo '</tbody></table>';
-    echo '<h2>字体预设</h2><table class="form-table" role="presentation"><tbody><tr><th scope="row">预设字体</th><td><select name="voidairo_options[font_preset]">';
+    echo '<h2>颜色与字体</h2><table class="form-table" role="presentation"><tbody><tr><th scope="row">深色模式</th><td><select name="voidairo_options[dark_mode]">';
+    foreach ($dark_modes as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['dark_mode'], $key, false) . '>' . esc_html($label) . '</option>'; }
+    echo '</select></td></tr><tr><th scope="row">预设字体</th><td><select name="voidairo_options[font_preset]">';
     foreach ($font_presets as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['font_preset'], $key, false) . '>' . esc_html($label) . '</option>'; }
     echo '</select></td></tr></tbody></table>';
     echo '<h2>显示与功能开关</h2><table class="form-table" role="presentation"><tbody>';
@@ -286,7 +328,7 @@ function voidairo_settings_page() {
     }
     echo '</tbody></table>';
     submit_button('保存设置');
-    echo '</form></div>';
+    echo '</form><script>(function($){$(function(){var frame;$("#voidairo-pick-hero").on("click",function(e){e.preventDefault();if(frame){frame.open();return;}frame=wp.media({title:"选择首页顶部大图",button:{text:"使用这张图片"},multiple:false});frame.on("select",function(){var a=frame.state().get("selection").first().toJSON();$("#voidairo_hero_image").val(a.url);$("#voidairo_hero_image_id").val(a.id);$("#voidairo-hero-preview").html("<img src=\""+a.url+"\" style=\"max-width:100%;height:auto;border-radius:8px\">");});frame.open();});$("#voidairo-clear-hero").on("click",function(e){e.preventDefault();$("#voidairo_hero_image,#voidairo_hero_image_id").val("");$("#voidairo-hero-preview").empty();});});})(jQuery);</script></div>';
 }
 
 function voidairo_fallback_menu() {
@@ -337,6 +379,45 @@ function voidairo_ruby_inline_syntax($content) {
 add_filter('the_content', 'voidairo_ruby_inline_syntax', 8);
 add_filter('comment_text', 'voidairo_ruby_inline_syntax', 8);
 
+
+function voidairo_highlight_search_terms($text, $query = null) {
+    $query = null === $query ? get_search_query() : $query;
+    $text = wp_strip_all_tags((string) $text);
+    $escaped = esc_html($text);
+    $terms = array_filter(array_unique(preg_split('/\s+/u', trim((string) $query))));
+    if (!$terms) { return $escaped; }
+    foreach ($terms as $term) {
+        $term = preg_quote($term, '/');
+        if ('' === $term) { continue; }
+        $escaped = preg_replace('/(' . $term . ')/iu', '<mark class="search-mark">$1</mark>', $escaped);
+    }
+    return $escaped;
+}
+
+function voidairo_search_snippets($post_id, $query, $limit = 3) {
+    $raw = get_post_field('post_content', $post_id);
+    $text = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags(strip_shortcodes($raw))));
+    $terms = array_filter(array_unique(preg_split('/\s+/u', trim((string) $query))));
+    if (!$text || !$terms) { return '<p>' . esc_html(get_the_excerpt($post_id)) . '</p>'; }
+    $snippets = array();
+    foreach ($terms as $term) {
+        if (count($snippets) >= $limit) { break; }
+        if (!preg_match_all('/' . preg_quote($term, '/') . '/iu', $text, $matches, PREG_OFFSET_CAPTURE)) { continue; }
+        foreach ($matches[0] as $match) {
+            if (count($snippets) >= $limit) { break; }
+            $pos = max(0, (int) $match[1] - 42);
+            $chunk = function_exists('mb_substr') ? mb_substr($text, $pos, 110) : substr($text, $pos, 110);
+            $length = function_exists('mb_strlen') ? mb_strlen($text) : strlen($text);
+            $snippets[] = ($pos > 0 ? '…' : '') . $chunk . ($length > $pos + 110 ? '…' : '');
+        }
+    }
+    if (!$snippets) { $snippets[] = wp_trim_words($text, 28, '…'); }
+    $out = '';
+    foreach ($snippets as $snippet) { $out .= '<p>' . voidairo_highlight_search_terms($snippet, $query) . '</p>'; }
+    if (count($snippets) >= $limit) { $out .= '<p class="search-more">…</p>'; }
+    return $out;
+}
+
 function voidairo_comment_nonce_field($fields) {
     $fields .= '<input type="hidden" name="voidairo_comment_nonce" value="' . esc_attr(wp_create_nonce('voidairo_comment')) . '">';
     return $fields;
@@ -364,3 +445,48 @@ function voidairo_ajax_comment() {
 }
 add_action('wp_ajax_voidairo_comment', 'voidairo_ajax_comment');
 add_action('wp_ajax_nopriv_voidairo_comment', 'voidairo_ajax_comment');
+
+
+function voidairo_comment_form_defaults($defaults) {
+    $defaults['label_submit'] = __('发布评论', 'voidairo');
+    $defaults['title_reply'] = __('发表评论', 'voidairo');
+    return $defaults;
+}
+add_filter('comment_form_defaults', 'voidairo_comment_form_defaults');
+
+function voidairo_github_release() {
+    $cached = get_site_transient('voidairo_github_release');
+    if (false !== $cached) { return $cached; }
+    $res = wp_remote_get('https://api.github.com/repos/viuku/voidairo/releases/latest', array('timeout' => 6, 'headers' => array('Accept' => 'application/vnd.github+json')));
+    if (is_wp_error($res) || 200 !== wp_remote_retrieve_response_code($res)) {
+        set_site_transient('voidairo_github_release', null, HOUR_IN_SECONDS * 6);
+        return null;
+    }
+    $data = json_decode(wp_remote_retrieve_body($res), true);
+    set_site_transient('voidairo_github_release', is_array($data) ? $data : null, HOUR_IN_SECONDS * 6);
+    return is_array($data) ? $data : null;
+}
+
+function voidairo_update_themes($transient) {
+    if (empty($transient->checked) || !isset($transient->checked[get_stylesheet()])) { return $transient; }
+    $release = voidairo_github_release();
+    if (!$release || empty($release['tag_name'])) { return $transient; }
+    $latest = ltrim((string) $release['tag_name'], 'v');
+    $current = wp_get_theme()->get('Version');
+    if (!version_compare($latest, $current, '>')) { return $transient; }
+    $package = '';
+    if (!empty($release['assets'])) {
+        foreach ($release['assets'] as $asset) {
+            if (!empty($asset['name']) && 'voidairo.zip' === $asset['name'] && !empty($asset['browser_download_url'])) { $package = $asset['browser_download_url']; break; }
+        }
+    }
+    if (!$package && !empty($release['zipball_url'])) { $package = $release['zipball_url']; }
+    $transient->response[get_stylesheet()] = array(
+        'theme' => get_stylesheet(),
+        'new_version' => $latest,
+        'url' => $release['html_url'] ?? 'https://github.com/viuku/voidairo',
+        'package' => $package,
+    );
+    return $transient;
+}
+add_filter('pre_set_site_transient_update_themes', 'voidairo_update_themes');

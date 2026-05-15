@@ -1,16 +1,18 @@
 (() => {
   const cfg = window.VOIDAIRO || { options: {}, i18n: {} };
   const root = document.documentElement;
+  let searchFormsReady = false;
 
   function initThemeMode() {
-    const saved = localStorage.getItem('voidairo-theme');
+    const mode = cfg.options.darkMode || (cfg.options.autoDark === false ? 'light' : 'system');
+    const saved = mode === 'system' ? localStorage.getItem('voidairo-theme') : null;
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && cfg.options.autoDark !== false && prefersDark)) root.dataset.theme = 'dark';
-    if (saved === 'light') root.dataset.theme = 'light';
+    if (mode === 'dark' || saved === 'dark' || (mode === 'system' && !saved && prefersDark)) root.dataset.theme = 'dark';
+    else root.dataset.theme = 'light';
     document.querySelectorAll('.theme-toggle').forEach((toggle) => {
       toggle.onclick = () => {
         root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('voidairo-theme', root.dataset.theme);
+        if (mode === 'system') localStorage.setItem('voidairo-theme', root.dataset.theme);
       };
     });
   }
@@ -225,31 +227,74 @@
     return text.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   }
 
-  function highlightCodeText(code) {
-    let html = escapeHtml(code);
-    const placeholders = [];
-    const keep = (className, value) => {
-      const id = `\u0000${placeholders.length}\u0000`;
-      placeholders.push(`<span class="${className}">${value}</span>`);
-      return id;
-    };
-    html = html.replace(/(&quot;[^\n]*?&quot;|&#039;[^\n]*?&#039;|`[^`]*`|"[^\n]*?"|'[^\n]*?')/g, (m) => keep('tok-string', m));
-    html = html.replace(/(\/\/.*?$|#.*?$|\/\*[\s\S]*?\*\/)/gm, (m) => keep('tok-comment', m));
-    html = html.replace(/\b(function|const|let|var|return|if|else|for|foreach|while|class|new|try|catch|finally|async|await|import|from|export|public|private|protected|static|extends|implements|namespace|use|def|lambda|yield|switch|case|break|continue|true|false|null|None|self|this)\b/g, '<span class="tok-keyword">$1</span>');
-    html = html.replace(/\b([A-Za-z_$][\w$]*)(?=\s*\()/g, '<span class="tok-function">$1</span>');
-    html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-number">$1</span>');
-    html = html.replace(/\u0000(\d+)\u0000/g, (_, i) => placeholders[Number(i)] || '');
-    return html;
+  function tokenizeCode(text) {
+    const keywords = new Set('abstract async await break case catch class const continue default def do echo else export extends false final finally for foreach from function if implements import interface let namespace new null private protected public return self static switch this throw true try use var while yield'.split(' '));
+    const out = [];
+    let i = 0;
+    const push = (type, value) => out.push(type ? `<span class="${type}">${escapeHtml(value)}</span>` : escapeHtml(value));
+    while (i < text.length) {
+      const rest = text.slice(i);
+      const ch = text[i];
+      if (rest.startsWith('//') || rest.startsWith('#')) {
+        const j = text.indexOf('\n', i);
+        const end = j === -1 ? text.length : j;
+        push('tok-comment', text.slice(i, end)); i = end; continue;
+      }
+      if (rest.startsWith('/*')) {
+        const j = text.indexOf('*/', i + 2);
+        const end = j === -1 ? text.length : j + 2;
+        push('tok-comment', text.slice(i, end)); i = end; continue;
+      }
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const quote = ch; let j = i + 1; let esc = false;
+        for (; j < text.length; j++) {
+          const c = text[j];
+          if (esc) { esc = false; continue; }
+          if (c === '\\') { esc = true; continue; }
+          if (c === quote) { j++; break; }
+        }
+        push('tok-string', text.slice(i, j)); i = j; continue;
+      }
+      const num = rest.match(/^\b\d+(?:\.\d+)?\b/);
+      if (num) { push('tok-number', num[0]); i += num[0].length; continue; }
+      const word = rest.match(/^[A-Za-z_$][\w$]*/);
+      if (word) {
+        const value = word[0];
+        const after = text.slice(i + value.length).match(/^\s*\(/);
+        push(keywords.has(value) ? 'tok-keyword' : (after ? 'tok-function' : ''), value);
+        i += value.length; continue;
+      }
+      push('', ch); i++;
+    }
+    return out.join('');
   }
 
   function initCodeHighlight(scope = document) {
     scope.querySelectorAll('.entry-content pre code:not([data-va-highlighted])').forEach((code) => {
       code.dataset.vaHighlighted = '1';
+      const original = code.textContent;
       const pre = code.closest('pre');
-      const className = code.className || pre.className || '';
+      const className = code.className || (pre && pre.className) || '';
       const match = className.match(/language-([a-z0-9+#-]+)/i);
       if (pre && match) pre.setAttribute('data-lang', match[1].toUpperCase());
-      code.innerHTML = highlightCodeText(code.textContent);
+      code.innerHTML = tokenizeCode(original);
+      if (code.textContent !== original) {
+        console.warn('VOIDairo code highlighter preserved text fallback triggered.');
+        code.textContent = original;
+      }
+    });
+  }
+
+  function initSearchForms() {
+    if (cfg.options.pjax === false || searchFormsReady) return;
+    searchFormsReady = true;
+    document.addEventListener('submit', (event) => {
+      const form = event.target.closest('form.search-form');
+      if (!form) return;
+      const data = new FormData(form);
+      const query = data.get('s') || '';
+      event.preventDefault();
+      pjaxVisit(`${location.origin}${location.pathname}?s=${encodeURIComponent(query)}`);
     });
   }
 
@@ -262,6 +307,7 @@
     initAjaxComments(scope);
     initCodeHighlight(scope);
     initBackToTop();
+    initSearchForms();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
