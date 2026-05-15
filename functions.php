@@ -454,14 +454,37 @@ function voidairo_fallback_menu() {
 }
 
 function voidairo_notice_shortcode($atts, $content = '') {
-    return '<aside class="va-notice">' . wp_kses_post(do_shortcode($content)) . '</aside>';
+    $atts = shortcode_atts(array('type' => 'info', 'title' => ''), $atts, 'notice');
+    $type = sanitize_html_class($atts['type'] ?: 'info');
+    $title = trim((string) $atts['title']);
+    $html = '<aside class="va-notice va-notice--' . esc_attr($type) . '" role="note">';
+    if ('' !== $title) {
+        $html .= '<strong class="va-notice__title">' . esc_html($title) . '</strong>';
+    }
+    $html .= '<div class="va-notice__content">' . wp_kses_post(wpautop(do_shortcode($content))) . '</div></aside>';
+    return $html;
 }
 add_shortcode('notice', 'voidairo_notice_shortcode');
 
 function voidairo_photos_shortcode($atts, $content = '') {
-    return '<div class="va-photos">' . do_shortcode($content) . '</div>';
+    $items = trim(do_shortcode($content));
+    if ('' === $items) { return ''; }
+    return '<div class="va-photos">' . $items . '</div>';
 }
 add_shortcode('photos', 'voidairo_photos_shortcode');
+
+function voidairo_photo_shortcode($atts) {
+    $atts = shortcode_atts(array('src' => '', 'alt' => '', 'caption' => ''), $atts, 'photo');
+    $src = esc_url($atts['src']);
+    if ('' === $src) { return ''; }
+    $caption = trim((string) $atts['caption']);
+    $html = '<figure class="va-photo"><img src="' . $src . '" alt="' . esc_attr($atts['alt']) . '" loading="lazy" decoding="async">';
+    if ('' !== $caption) {
+        $html .= '<figcaption>' . esc_html($caption) . '</figcaption>';
+    }
+    return $html . '</figure>';
+}
+add_shortcode('photo', 'voidairo_photo_shortcode');
 
 function voidairo_ruby_shortcode($atts, $content = '') {
     $atts = shortcode_atts(array('text' => '', 'rt' => ''), $atts, 'ruby');
@@ -469,11 +492,31 @@ function voidairo_ruby_shortcode($atts, $content = '') {
         list($atts['text'], $atts['rt']) = array_map('trim', explode(':', $content, 2));
     }
     if (!$atts['text'] || !$atts['rt']) { return esc_html($content); }
-    return '<ruby>' . esc_html($atts['text']) . '<rp>(</rp><rt>' . esc_html($atts['rt']) . '</rt><rp>)</rp></ruby>';
+    return '<ruby class="va-ruby">' . esc_html($atts['text']) . '<rp>(</rp><rt>' . esc_html($atts['rt']) . '</rt><rp>)</rp></ruby>';
 }
 add_shortcode('ruby', 'voidairo_ruby_shortcode');
 
+function voidairo_link_shortcode($atts) {
+    $atts = shortcode_atts(array('title' => '', 'url' => '', 'desc' => '', 'image' => ''), $atts, 'link');
+    $url = esc_url($atts['url']);
+    $title = trim((string) $atts['title']);
+    if ('' === $url || '' === $title) { return ''; }
+    $image = esc_url($atts['image']);
+    $desc = trim((string) $atts['desc']);
+    $out = '<a class="va-link-card" href="' . $url . '" target="_blank" rel="noopener noreferrer">';
+    if ($image) { $out .= '<img src="' . $image . '" alt="" loading="lazy" decoding="async">'; }
+    $out .= '<span class="va-link-card__body"><strong>' . esc_html($title) . '</strong>';
+    if ('' !== $desc) { $out .= '<small>' . esc_html($desc) . '</small>'; }
+    return $out . '</span></a>';
+}
+add_shortcode('link', 'voidairo_link_shortcode');
+
 function voidairo_links_shortcode($atts, $content = '') {
+    $rendered = trim(do_shortcode($content));
+    if (false !== strpos($rendered, 'va-link-card')) {
+        return '<div class="va-links">' . $rendered . '</div>';
+    }
+
     $items = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $content)));
     if (!$items) { return ''; }
     $out = '<div class="va-links">';
@@ -482,7 +525,7 @@ function voidairo_links_shortcode($atts, $content = '') {
         $title = $m[1]; $url = $m[2]; $avatar = $m[3] ?? '';
         $out .= '<a class="va-link-card" href="' . esc_url($url) . '" target="_blank" rel="noopener noreferrer">';
         if ($avatar) { $out .= '<img src="' . esc_url($avatar) . '" alt="" loading="lazy" decoding="async">'; }
-        $out .= '<span>' . esc_html($title) . '</span></a>';
+        $out .= '<span class="va-link-card__body"><strong>' . esc_html($title) . '</strong></span></a>';
     }
     return $out . '</div>';
 }

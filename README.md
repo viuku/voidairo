@@ -15,14 +15,14 @@ VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VO
 ## 写作增强
 
 ```text
-[notice]提示内容[/notice]
+[notice type="info" title="提示"]提示内容[/notice]
 
 [photos]
-图片或图片块
+[photo src="https://example.com/photo.jpg" alt="图片说明" caption="图片标题"]
 [/photos]
 
 [links]
-[站点名](https://example.com)+(https://example.com/avatar.png)
+[link title="站点名" url="https://example.com" desc="一句简介" image="https://example.com/avatar.png"]
 [/links]
 
 {{文字:注音}}
