@@ -74,10 +74,15 @@
     if (!panel || !list || !content) return;
     const headings = [...content.querySelectorAll('h2,h3')].filter((h) => h.textContent.trim());
     if (headings.length < 2) { panel.remove(); return; }
-    list.innerHTML = headings.map((h, i) => {
+    list.textContent = '';
+    headings.forEach((h, i) => {
       if (!h.id) h.id = `toc-${i}-${h.textContent.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/gi, '-').replace(/^-|-$/g, '')}`;
-      return `<a class="toc-link toc-${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent.trim()}</a>`;
-    }).join('');
+      const link = document.createElement('a');
+      link.className = `toc-link toc-${h.tagName.toLowerCase()}`;
+      link.setAttribute('href', `#${h.id}`);
+      link.textContent = h.textContent.trim();
+      list.appendChild(link);
+    });
     if ('IntersectionObserver' in window) {
       const links = new Map([...list.querySelectorAll('a')].map((a) => [a.getAttribute('href').slice(1), a]));
       const io = new IntersectionObserver((entries) => {
@@ -199,8 +204,19 @@
       document.title = doc.title;
       document.body.className = doc.body.className;
       document.body.classList.remove('nav-open');
+      const navToggle = document.querySelector('.nav-toggle');
+      if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
       if (push) history.pushState({ pjax: true }, doc.title, url);
-      window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+      const targetUrl = new URL(url, location.href);
+      if (targetUrl.hash) {
+        const rawId = decodeURIComponent(targetUrl.hash.slice(1));
+        const escapedId = window.CSS && CSS.escape ? CSS.escape(rawId) : '';
+        const target = document.getElementById(rawId) || (escapedId ? document.querySelector(`[name="${escapedId}"]`) : null);
+        if (target) target.scrollIntoView({ block: 'start' });
+        else window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+      }
       initAll(document);
       document.dispatchEvent(new CustomEvent('voidairo:pjax-complete'));
     } catch (e) {
@@ -292,9 +308,12 @@
       const form = event.target.closest('form.search-form');
       if (!form) return;
       const data = new FormData(form);
-      const query = data.get('s') || '';
+      const query = String(data.get('s') || '').trim();
+      if (!query) return;
       event.preventDefault();
-      pjaxVisit(`${location.origin}${location.pathname}?s=${encodeURIComponent(query)}`);
+      const url = new URL(form.getAttribute('action') || '/', location.href);
+      url.searchParams.set('s', query);
+      pjaxVisit(url.toString());
     });
   }
 

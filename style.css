@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.6
+Version: 1.0.7
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -352,5 +352,67 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
   .entry-content pre[data-lang]:after{
     top:.88rem;
     right:1rem;
+  }
+}
+
+
+/* v1.0.7 review-agent hardening: nav, comments, TOC/PJAX support CSS */
+.entry-content pre[data-lang]:after{
+  max-width:calc(100% - 5.5rem);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+[data-theme="dark"] .search-mark{
+  background:rgba(255,213,79,.32);
+  color:#fff3bf;
+}
+.comment-content{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.comment-content img,
+.comment-content video,
+.comment-content iframe{
+  max-width:100%;
+  height:auto;
+}
+.comment-content pre,
+.comment-content table{
+  display:block;
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.comment-list .children{
+  list-style:none;
+  margin:.9rem 0 0;
+  padding-left:1.25rem;
+}
+@media (min-width:641px) and (max-width:900px){
+  .brand{
+    flex:0 1 clamp(120px,28vw,220px);
+  }
+  .brand__logo img{
+    max-width:clamp(42px,14vw,120px);
+  }
+  .site-nav{
+    flex:1 1 auto;
+    max-width:none;
+  }
+}
+@media (max-width:640px){
+  body.nav-open #primary{
+    padding-top:184px;
+  }
+  body.nav-open .hero + #primary,
+  body.nav-open:has(.hero) #primary{
+    padding-top:18px;
+  }
+  .comment-list .children{
+    padding-left:.75rem;
+  }
+  .entry-content pre[data-lang]:after{
+    max-width:calc(100% - 5.25rem);
   }
 }
