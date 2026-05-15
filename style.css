@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.5
+Version: 1.0.6
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -287,5 +287,70 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
     align-items:flex-start;
     gap:0;
     padding-right:0!important;
+  }
+}
+
+
+/* v1.0.6 narrow-screen code toolbar and tablet navigation fixes */
+.mac-code .entry-content pre{
+  padding-top:2.8rem!important;
+}
+.mac-code .entry-content pre:before{
+  top:1rem!important;
+  left:1.05rem!important;
+}
+@media (min-width:641px) and (max-width:900px){
+  .site-header__inner{
+    gap:10px;
+    padding-left:16px;
+    padding-right:16px;
+  }
+  .brand{
+    flex:0 1 auto;
+    min-width:0;
+  }
+  .brand__title{
+    max-width:26vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .site-nav{
+    min-width:0;
+    max-width:calc(100vw - 220px);
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .site-nav::-webkit-scrollbar{
+    display:none;
+  }
+  .primary-menu{
+    display:flex!important;
+    align-items:center;
+    gap:.2rem;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+  }
+  .primary-menu a{
+    padding:.42rem .56rem;
+    font-size:.88rem;
+  }
+  .header-actions{
+    flex:0 0 auto;
+  }
+}
+@media (max-width:640px){
+  .mac-code .entry-content pre{
+    padding:2.75rem 1rem 1rem!important;
+  }
+  .mac-code .entry-content pre:before{
+    top:1rem!important;
+    left:1rem!important;
+  }
+  .entry-content pre[data-lang]:after{
+    top:.88rem;
+    right:1rem;
   }
 }
