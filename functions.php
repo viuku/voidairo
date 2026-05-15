@@ -12,6 +12,12 @@ function voidairo_defaults() {
         'likes' => true,
         'views' => true,
         'mac_code' => true,
+        'show_card_meta' => true,
+        'show_read_more' => true,
+        'hero_image' => '',
+        'hero_title' => '',
+        'hero_subtitle' => '',
+        'font_preset' => 'void',
     );
 }
 
@@ -20,9 +26,13 @@ function voidairo_options() {
     return wp_parse_args(is_array($saved) ? $saved : array(), voidairo_defaults());
 }
 
-function voidairo_option($key) {
+function voidairo_option_value($key, $default = null) {
     $options = voidairo_options();
-    return !empty($options[$key]);
+    return array_key_exists($key, $options) ? $options[$key] : $default;
+}
+
+function voidairo_option($key) {
+    return !empty(voidairo_option_value($key));
 }
 
 function voidairo_setup() {
@@ -75,9 +85,9 @@ function voidairo_scripts() {
             'likes' => (bool) $opts['likes'],
         ),
         'i18n' => array(
-            'loading' => __('Loading…', 'voidairo'),
-            'commentError' => __('Comment failed. Please check the form and try again.', 'voidairo'),
-            'commentPending' => __('Your comment is awaiting moderation.', 'voidairo'),
+            'loading' => __('加载中…', 'voidairo'),
+            'commentError' => __('评论提交失败，请检查表单后重试。', 'voidairo'),
+            'commentPending' => __('你的评论正在等待审核。', 'voidairo'),
         ),
     ));
 }
@@ -200,6 +210,9 @@ add_action('wp_ajax_voidairo_like', 'voidairo_ajax_like');
 add_action('wp_ajax_nopriv_voidairo_like', 'voidairo_ajax_like');
 
 function voidairo_body_classes($classes) {
+    $preset = sanitize_key((string) voidairo_option_value('font_preset', 'void'));
+    if (!in_array($preset, array('void', 'system', 'serif', 'chinese'), true)) { $preset = 'void'; }
+    $classes[] = 'font-preset-' . $preset;
     if (voidairo_option('serif')) { $classes[] = 'use-serif'; }
     if (voidairo_option('mac_code')) { $classes[] = 'mac-code'; }
     return $classes;
@@ -213,15 +226,22 @@ function voidairo_customizer($wp_customize) {
 add_action('customize_register', 'voidairo_customizer');
 
 function voidairo_admin_menu() {
-    add_theme_page(__('VOIDairo Settings', 'voidairo'), __('VOIDairo', 'voidairo'), 'edit_theme_options', 'voidairo-settings', 'voidairo_settings_page');
+    add_theme_page('VOIDairo 主题设置', 'VOIDairo 设置', 'edit_theme_options', 'voidairo-settings', 'voidairo_settings_page');
 }
 add_action('admin_menu', 'voidairo_admin_menu');
 
 function voidairo_sanitize_options($input) {
+    $input = is_array($input) ? $input : array();
     $defaults = voidairo_defaults();
     $output = array();
-    foreach ($defaults as $key => $default) { $output[$key] = !empty($input[$key]); }
-    return $output;
+    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'show_read_more');
+    foreach ($boolean_keys as $key) { $output[$key] = !empty($input[$key]); }
+    $output['hero_image'] = isset($input['hero_image']) ? esc_url_raw(trim(wp_unslash($input['hero_image']))) : '';
+    $output['hero_title'] = isset($input['hero_title']) ? sanitize_text_field(wp_unslash($input['hero_title'])) : '';
+    $output['hero_subtitle'] = isset($input['hero_subtitle']) ? sanitize_text_field(wp_unslash($input['hero_subtitle'])) : '';
+    $font = isset($input['font_preset']) ? sanitize_key(wp_unslash($input['font_preset'])) : $defaults['font_preset'];
+    $output['font_preset'] = in_array($font, array('void', 'system', 'serif', 'chinese'), true) ? $font : $defaults['font_preset'];
+    return wp_parse_args($output, $defaults);
 }
 
 function voidairo_register_settings() {
@@ -232,29 +252,46 @@ add_action('admin_init', 'voidairo_register_settings');
 function voidairo_settings_page() {
     if (!current_user_can('edit_theme_options')) { return; }
     $opts = voidairo_options();
-    $labels = array(
-        'serif' => __('Use serif reading font', 'voidairo'),
-        'auto_dark' => __('Follow system dark mode by default', 'voidairo'),
-        'pjax' => __('Enable PJAX page transitions', 'voidairo'),
-        'ajax_comments' => __('Enable AJAX comments', 'voidairo'),
-        'toc' => __('Build article table of contents', 'voidairo'),
-        'likes' => __('Enable post likes', 'voidairo'),
-        'views' => __('Enable lightweight view counter', 'voidairo'),
-        'mac_code' => __('Use Mac-style code blocks', 'voidairo'),
+    $checks = array(
+        'show_card_meta' => '首页/列表文章显示元信息（日期、作者、分类、浏览、点赞、评论）',
+        'show_read_more' => '首页/列表文章显示 Read more 按钮',
+        'auto_dark' => '默认跟随系统深色模式',
+        'pjax' => '启用 PJAX 页面无刷新切换（如果导航异常可关闭）',
+        'ajax_comments' => '启用 AJAX 评论',
+        'toc' => '文章页自动生成目录',
+        'likes' => '启用文章点赞',
+        'views' => '启用轻量浏览量统计',
+        'mac_code' => '启用 VS Code 风格代码块外观',
+        'serif' => '文章阅读区域使用衬线体',
     );
-    echo '<div class="wrap"><h1>' . esc_html__('VOIDairo Settings', 'voidairo') . '</h1><form method="post" action="options.php">';
+    $font_presets = array(
+        'void' => 'VOID 默认：系统无衬线 + 中文优化',
+        'system' => '纯系统字体：最快加载',
+        'serif' => '衬线阅读：思源宋体/Noto Serif SC 优先',
+        'chinese' => '中文屏显：苹方/微软雅黑优先',
+    );
+    echo '<div class="wrap"><h1>VOIDairo 主题设置</h1><p>参考 VOID 的核心设置重新整理：顶部大图、颜色/字体、PJAX、目录、评论、代码块和首页显示项。</p><form method="post" action="options.php">';
     settings_fields('voidairo_settings');
-    echo '<table class="form-table" role="presentation"><tbody>';
-    foreach ($labels as $key => $label) {
-        echo '<tr><th scope="row">' . esc_html($label) . '</th><td><label><input type="checkbox" name="voidairo_options[' . esc_attr($key) . ']" value="1" ' . checked(!empty($opts[$key]), true, false) . '> ' . esc_html__('Enabled', 'voidairo') . '</label></td></tr>';
+    echo '<h2>首页顶部大图</h2><table class="form-table" role="presentation"><tbody>';
+    echo '<tr><th scope="row"><label for="voidairo_hero_image">首页顶部大图 URL</label></th><td><input id="voidairo_hero_image" class="regular-text" type="url" name="voidairo_options[hero_image]" value="' . esc_attr($opts['hero_image']) . '" placeholder="https://example.com/banner.jpg"><p class="description">留空时使用渐变背景；可以填写图片或随机图 API。</p></td></tr>';
+    echo '<tr><th scope="row"><label for="voidairo_hero_title">首页顶部大标题</label></th><td><input id="voidairo_hero_title" class="regular-text" type="text" name="voidairo_options[hero_title]" value="' . esc_attr($opts['hero_title']) . '" placeholder="' . esc_attr(get_bloginfo('name')) . '"></td></tr>';
+    echo '<tr><th scope="row"><label for="voidairo_hero_subtitle">首页顶部小标题</label></th><td><input id="voidairo_hero_subtitle" class="regular-text" type="text" name="voidairo_options[hero_subtitle]" value="' . esc_attr($opts['hero_subtitle']) . '" placeholder="' . esc_attr(get_bloginfo('description')) . '"></td></tr>';
+    echo '</tbody></table>';
+    echo '<h2>字体预设</h2><table class="form-table" role="presentation"><tbody><tr><th scope="row">预设字体</th><td><select name="voidairo_options[font_preset]">';
+    foreach ($font_presets as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['font_preset'], $key, false) . '>' . esc_html($label) . '</option>'; }
+    echo '</select></td></tr></tbody></table>';
+    echo '<h2>显示与功能开关</h2><table class="form-table" role="presentation"><tbody>';
+    foreach ($checks as $key => $label) {
+        echo '<tr><th scope="row">' . esc_html($label) . '</th><td><label><input type="checkbox" name="voidairo_options[' . esc_attr($key) . ']" value="1" ' . checked(!empty($opts[$key]), true, false) . '> 启用</label></td></tr>';
     }
     echo '</tbody></table>';
-    submit_button();
+    submit_button('保存设置');
     echo '</form></div>';
 }
 
 function voidairo_fallback_menu() {
-    echo '<ul class="primary-menu"><li><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Home', 'voidairo') . '</a></li></ul>';
+    $class = (is_front_page() || is_home()) ? ' class="current-menu-item"' : '';
+    echo '<ul class="primary-menu"><li' . $class . '><a href="' . esc_url(home_url('/')) . '">' . esc_html__('首页', 'voidairo') . '</a></li></ul>';
 }
 
 function voidairo_notice_shortcode($atts, $content = '') {

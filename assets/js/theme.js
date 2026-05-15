@@ -94,7 +94,11 @@
     scope.querySelectorAll('.voidairo-like:not([data-va-ready])').forEach((btn) => {
       btn.dataset.vaReady = '1';
       const postId = btn.dataset.postId;
-      if (localStorage.getItem(`voidairo-liked-${postId}`)) btn.classList.add('is-liked');
+      const heart = btn.querySelector('span');
+      if (localStorage.getItem(`voidairo-liked-${postId}`)) {
+        btn.classList.add('is-liked');
+        if (heart) heart.textContent = '♥';
+      }
       btn.addEventListener('click', async () => {
         if (btn.disabled || localStorage.getItem(`voidairo-liked-${postId}`)) return;
         btn.disabled = true;
@@ -105,6 +109,7 @@
           if (!json.success) throw new Error(json.data && json.data.message || 'like failed');
           btn.querySelector('strong').textContent = json.data.likes;
           btn.classList.add('is-liked');
+          if (heart) heart.textContent = '♥';
           localStorage.setItem(`voidairo-liked-${postId}`, '1');
         } catch (e) { console.warn(e); }
         btn.disabled = false;
@@ -164,6 +169,7 @@
     if (anchor.closest('#wpadminbar, .comment-reply-link')) return false;
     const url = new URL(anchor.href, location.href);
     if (url.origin !== location.origin) return false;
+    if (url.pathname === location.pathname && url.search === location.search && url.hash) return false;
     if (url.pathname.includes('/wp-admin') || url.pathname.includes('/wp-login.php')) return false;
     if (/\.(zip|rar|7z|pdf|jpg|jpeg|png|gif|webp|mp4|mp3)$/i.test(url.pathname)) return false;
     return true;
@@ -183,6 +189,9 @@
       if (currentHero && nextHero) currentHero.replaceWith(nextHero);
       else if (currentHero && !nextHero) currentHero.remove();
       else if (!currentHero && nextHero) document.querySelector('.site-header').after(nextHero);
+      const currentNav = document.querySelector('#site-navigation');
+      const nextNav = doc.querySelector('#site-navigation');
+      if (currentNav && nextNav) currentNav.replaceWith(nextNav);
       currentMain.replaceWith(nextMain);
       document.title = doc.title;
       document.body.className = doc.body.className;
@@ -210,6 +219,38 @@
     window.addEventListener('popstate', () => pjaxVisit(location.href, false));
   }
 
+  function escapeHtml(text) {
+    return text.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  }
+
+  function highlightCodeText(code) {
+    let html = escapeHtml(code);
+    const placeholders = [];
+    const keep = (className, value) => {
+      const id = `\u0000${placeholders.length}\u0000`;
+      placeholders.push(`<span class="${className}">${value}</span>`);
+      return id;
+    };
+    html = html.replace(/(&quot;[^\n]*?&quot;|&#039;[^\n]*?&#039;|`[^`]*`|"[^\n]*?"|'[^\n]*?')/g, (m) => keep('tok-string', m));
+    html = html.replace(/(\/\/.*?$|#.*?$|\/\*[\s\S]*?\*\/)/gm, (m) => keep('tok-comment', m));
+    html = html.replace(/\b(function|const|let|var|return|if|else|for|foreach|while|class|new|try|catch|finally|async|await|import|from|export|public|private|protected|static|extends|implements|namespace|use|def|lambda|yield|switch|case|break|continue|true|false|null|None|self|this)\b/g, '<span class="tok-keyword">$1</span>');
+    html = html.replace(/\b([A-Za-z_$][\w$]*)(?=\s*\()/g, '<span class="tok-function">$1</span>');
+    html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-number">$1</span>');
+    html = html.replace(/\u0000(\d+)\u0000/g, (_, i) => placeholders[Number(i)] || '');
+    return html;
+  }
+
+  function initCodeHighlight(scope = document) {
+    scope.querySelectorAll('.entry-content pre code:not([data-va-highlighted])').forEach((code) => {
+      code.dataset.vaHighlighted = '1';
+      const pre = code.closest('pre');
+      const className = code.className || pre.className || '';
+      const match = className.match(/language-([a-z0-9+#-]+)/i);
+      if (pre && match) pre.setAttribute('data-lang', match[1].toUpperCase());
+      code.innerHTML = highlightCodeText(code.textContent);
+    });
+  }
+
   function initAll(scope = document) {
     initThemeMode();
     initNav();
@@ -217,6 +258,7 @@
     initToc(scope);
     initLikes(scope);
     initAjaxComments(scope);
+    initCodeHighlight(scope);
     initBackToTop();
   }
 

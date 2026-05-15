@@ -1,9 +1,16 @@
 <?php get_header(); ?>
+<?php
+$hero_image = function_exists('voidairo_option_value') ? voidairo_option_value('hero_image', '') : '';
+$hero_title = function_exists('voidairo_option_value') && voidairo_option_value('hero_title', '') ? voidairo_option_value('hero_title', '') : (is_home() && !is_front_page() ? single_post_title('', false) : get_bloginfo('name'));
+$hero_subtitle = function_exists('voidairo_option_value') && voidairo_option_value('hero_subtitle', '') ? voidairo_option_value('hero_subtitle', '') : (get_bloginfo('description') ?: __('A quiet place for writing, reading and thinking.', 'voidairo'));
+?>
 <section class="hero" aria-labelledby="hero-title">
-  <div class="hero-card">
-    <h1 id="hero-title"><?php echo is_home() && !is_front_page() ? esc_html(single_post_title('', false)) : esc_html(get_bloginfo('name')); ?></h1>
-    <p><?php echo esc_html(get_bloginfo('description') ?: __('A quiet place for writing, reading and thinking.', 'voidairo')); ?></p>
-    <div class="hero-meta"><span class="pill"><?php esc_html_e('Responsive', 'voidairo'); ?></span><span class="pill"><?php esc_html_e('Dark mode', 'voidairo'); ?></span><span class="pill"><?php esc_html_e('SEO ready', 'voidairo'); ?></span></div>
+  <div class="hero-card<?php echo $hero_image ? ' has-hero-image' : ''; ?>"<?php echo $hero_image ? ' style="--hero-image:url(' . esc_url($hero_image) . ')"' : ''; ?>>
+    <div class="hero-card__content">
+      <h1 id="hero-title"><?php echo esc_html($hero_title); ?></h1>
+      <p><?php echo esc_html($hero_subtitle); ?></p>
+      <div class="hero-meta"><span class="pill">响应式</span><span class="pill">深色模式</span><span class="pill">SEO 优化</span></div>
+    </div>
   </div>
 </section>
 <main id="primary" class="container" role="main">

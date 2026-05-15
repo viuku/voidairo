@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.0
+Version: 1.0.1
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -28,3 +28,56 @@ a{color:var(--va-accent);text-decoration:none;text-underline-offset:.18em;transi
 /* Enhanced VOID-style utilities */
 .is-pjax-loading #primary,.is-pjax-loading .hero{opacity:.45;filter:saturate(.8);transition:opacity .18s ease,filter .18s ease}.article-actions{display:flex;gap:10px;align-items:center;margin-top:14px}.voidairo-like{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--va-border);border-radius:999px;background:var(--va-surface);padding:.48rem .82rem;color:var(--va-text);box-shadow:0 8px 24px rgba(0,0,0,.04);transition:transform .2s ease,box-shadow .2s ease,background .2s ease}.voidairo-like:hover{transform:translateY(-2px);box-shadow:var(--va-shadow);background:color-mix(in srgb,var(--va-accent-2) 12%,var(--va-surface))}.voidairo-like.is-liked{color:#e85b85;border-color:color-mix(in srgb,#e85b85 48%,var(--va-border));background:color-mix(in srgb,#e85b85 10%,var(--va-surface))}.voidairo-like.is-liked span{content:'♥'}.toc-panel{position:fixed;top:96px;right:max(18px,calc((100vw - var(--va-wide))/2 - 190px));z-index:20;width:180px;max-height:calc(100vh - 130px);overflow:auto;padding:14px;border-radius:16px;background:var(--va-surface);border:1px solid var(--va-border);box-shadow:var(--va-shadow);backdrop-filter:saturate(160%) blur(14px)}.toc-panel__title{font-weight:760;font-size:.88rem;margin-bottom:8px;color:var(--va-text)}.toc-list{display:grid;gap:2px}.toc-link{display:block;color:var(--va-muted);font-size:.82rem;line-height:1.35;padding:.34rem .48rem;border-radius:9px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.toc-link:hover,.toc-link.is-active{color:var(--va-accent);background:color-mix(in srgb,var(--va-accent) 10%,transparent);text-decoration:none}.toc-h3{padding-left:1.05rem;font-size:.78rem}.comment-ajax-note{padding:.6rem .8rem;border-radius:12px;background:color-mix(in srgb,var(--va-accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--va-accent) 25%,var(--va-border))}.mac-code .entry-content pre{position:relative;padding-top:2.3rem}.mac-code .entry-content pre:before{content:'';position:absolute;top:.82rem;left:1rem;width:12px;height:12px;border-radius:999px;background:#ff5f57;box-shadow:20px 0 #ffbd2e,40px 0 #28c840}.mac-code .entry-content pre code{font-family:var(--va-font-mono)}
 @media (max-width:1280px){.toc-panel{position:static;width:auto;max-width:var(--va-content);margin:0 auto 18px}.toc-list{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.toc-h3{padding-left:.48rem}}@media (max-width:640px){.toc-panel{display:none}.article-actions{margin-top:10px}.voidairo-like{width:100%;justify-content:center}}
+
+
+/* VOIDairo refinements: desktop nav, VOID-like hero, settings-driven cards, reading width and form fixes */
+body.font-preset-void{
+  --va-font-sans:"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --va-font-serif:"Noto Serif SC","Source Han Serif SC","Songti SC","SimSun",Georgia,serif;
+  --va-font-mono:"Cascadia Code","SFMono-Regular","JetBrains Mono",Consolas,Menlo,monospace;
+}
+body.font-preset-system{--va-font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--va-font-serif:Georgia,serif}
+body.font-preset-serif,body.font-preset-serif .entry-content{font-family:var(--va-font-serif)}
+body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
+
+.primary-menu .current-menu-item>a,
+.primary-menu .current_page_item>a,
+.primary-menu .current-menu-ancestor>a,
+.primary-menu .current_page_parent>a{
+  background:var(--va-surface);
+  text-decoration:none;
+  box-shadow:inset 0 0 0 1px var(--va-border);
+}
+.primary-menu li:not(.current-menu-item):not(.current_page_item):not(.current-menu-ancestor):not(.current_page_parent)>a{box-shadow:none;background:transparent}
+
+.hero-card{min-height:360px;display:flex;align-items:flex-end;background-size:cover;background-position:center;isolation:isolate}
+.hero-card.has-hero-image{background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.56)),var(--hero-image);color:#fff;border:0}
+.hero-card.has-hero-image:before{inset:0;width:auto;border-radius:0;background:linear-gradient(135deg,rgba(95,127,223,.25),transparent 45%),radial-gradient(circle at 80% 20%,rgba(255,255,255,.24),transparent 24rem);filter:none;z-index:-1}
+.hero-card__content{position:relative;z-index:1;max-width:760px;text-shadow:0 2px 18px rgba(0,0,0,.18)}
+.hero-card.has-hero-image p{color:rgba(255,255,255,.88)}
+.hero-card.has-hero-image .pill{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.24);color:#fff;backdrop-filter:blur(14px)}
+
+.single .article{max-width:var(--va-wide);background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+.single .article__cover{border-radius:22px;overflow:hidden;box-shadow:var(--va-shadow);margin-bottom:28px}
+.single .article__header,.single .entry-content{max-width:900px;margin-left:auto;margin-right:auto;padding-left:0;padding-right:0}
+.single .article__title{max-width:980px}
+.entry-content h2,.entry-content h3,.entry-content h4{scroll-margin-top:calc(var(--va-header-h) + 26px)}
+
+.comment-form input:not([type="checkbox"]):not([type="radio"]),
+.comment-form textarea,
+.search-form input:not([type="submit"]):not([type="button"]){width:100%;border:1px solid var(--va-border);border-radius:12px;background:var(--va-surface-solid);padding:.72rem .85rem}
+.comment-form input[type="checkbox"],.comment-form input[type="radio"]{width:auto;min-width:0;margin:0 .45rem 0 0}
+.comment-form-cookies-consent{display:flex;align-items:center;gap:.45rem;line-height:1.5}
+.comment-form-cookies-consent label{display:inline;margin:0}
+.search-form{display:flex;gap:.55rem;align-items:center}.search-form label{flex:1}.search-submit,.comment-form .submit{border:1px solid var(--va-border);border-radius:999px;background:var(--va-text);color:var(--va-bg);padding:.7rem 1.05rem}
+
+.entry-content pre{position:relative;background:#1e1e1e;color:#d4d4d4;border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 44px rgba(0,0,0,.18)}
+.mac-code .entry-content pre{padding-top:2.8rem}
+.entry-content pre[data-lang]:after{content:attr(data-lang);position:absolute;right:1rem;top:.7rem;color:#858585;font-size:.72rem;letter-spacing:.08em}
+.entry-content pre code{color:#d4d4d4}.tok-comment{color:#6a9955}.tok-keyword{color:#569cd6}.tok-string{color:#ce9178}.tok-function{color:#dcdcaa}.tok-number{color:#b5cea8}
+.entry-content :not(pre)>code{font-family:var(--va-font-mono);background:#252526;color:#d7ba7d}
+
+.voidairo-like span{line-height:1}.voidairo-like.is-liked span{content:normal}
+
+@media (min-width:641px){.nav-toggle{display:none!important}.site-nav{position:static!important;opacity:1!important;transform:none!important;pointer-events:auto!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}}
+@media (max-width:640px){.nav-toggle{display:inline-grid!important;width:38px;height:38px;padding:0;place-items:center;line-height:1}.site-nav{top:calc(var(--va-header-h) + 8px)}.hero-card{min-height:260px}.single .article__header,.single .entry-content{padding-left:4px;padding-right:4px}}

@@ -5,9 +5,9 @@
     <a class="post-card__thumb" href="<?php the_permalink(); ?>" aria-hidden="true" tabindex="-1"><?php voidairo_thumbnail('voidairo-card', 'post-card__image'); ?></a>
   <?php endif; ?>
   <div class="post-card__body">
-    <?php voidairo_post_meta(); ?>
+    <?php if (voidairo_option('show_card_meta')) { voidairo_post_meta(); } ?>
     <h2 class="post-card__title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
     <p class="post-excerpt"><?php echo esc_html(get_the_excerpt()); ?></p>
-    <a class="read-more" href="<?php the_permalink(); ?>"><?php esc_html_e('Read more', 'voidairo'); ?> →</a>
+    <?php if (voidairo_option('show_read_more')) : ?><a class="read-more" href="<?php the_permalink(); ?>"><?php esc_html_e('Read more', 'voidairo'); ?> →</a><?php endif; ?>
   </div>
 </article>
