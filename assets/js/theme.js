@@ -20,6 +20,7 @@
     const nav = document.getElementById('site-navigation');
     if (navToggle && nav) navToggle.onclick = () => {
       const open = nav.classList.toggle('is-open');
+      document.body.classList.toggle('nav-open', open);
       navToggle.setAttribute('aria-expanded', String(open));
     };
   }
@@ -195,6 +196,7 @@
       currentMain.replaceWith(nextMain);
       document.title = doc.title;
       document.body.className = doc.body.className;
+      document.body.classList.remove('nav-open');
       if (push) history.pushState({ pjax: true }, doc.title, url);
       window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
       initAll(document);

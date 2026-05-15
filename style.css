@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.1
+Version: 1.0.2
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -81,3 +81,31 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
 
 @media (min-width:641px){.nav-toggle{display:none!important}.site-nav{position:static!important;opacity:1!important;transform:none!important;pointer-events:auto!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}}
 @media (max-width:640px){.nav-toggle{display:inline-grid!important;width:38px;height:38px;padding:0;place-items:center;line-height:1}.site-nav{top:calc(var(--va-header-h) + 8px)}.hero-card{min-height:260px}.single .article__header,.single .entry-content{padding-left:4px;padding-right:4px}}
+
+
+/* Screenshot QA fixes: mobile nav, search forms, mobile article/comment spacing */
+.search-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.6rem;align-items:center;max-width:560px}
+.search-form label{display:block;min-width:0;margin:0}
+.search-form .search-field{display:block;width:100%;height:44px;border:1px solid var(--va-border);border-radius:999px;background:var(--va-surface-solid);padding:.65rem 1rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.search-form .search-submit{height:44px;border:1px solid var(--va-border);border-radius:999px;background:var(--va-text);color:var(--va-bg);padding:0 1.15rem;white-space:nowrap;box-shadow:0 10px 26px rgba(0,0,0,.08)}
+.page-header .search-form,.not-found .search-form{margin-top:1rem}
+.search .widget-area .widget_search,.search .widget-area .widget:first-child:has(.search-form){display:none}
+
+@media (max-width:640px){
+  body.nav-open .hero{margin-top:184px}
+  .site-nav{left:14px;right:14px;max-height:calc(100vh - var(--va-header-h) - 22px);overflow:auto}
+  .primary-menu a{padding:.82rem .9rem}
+  .search-form{grid-template-columns:1fr;max-width:none}
+  .search-form .search-submit{width:100%}
+  .page-header{margin-bottom:1rem}
+  .single .article__header{padding-top:18px;padding-bottom:8px}
+  .single .entry-content{font-size:1rem;line-height:1.72}
+  .single .entry-content h2{margin-top:1.45em}
+  .article__title{font-size:clamp(1.72rem,9vw,2.35rem)}
+  .article-actions{margin-top:8px;margin-bottom:4px}
+  .voidairo-like{width:auto;min-width:132px;justify-content:center;padding:.42rem .72rem}
+  .comment-form-cookies-consent{align-items:flex-start;gap:.6rem;margin-bottom:1rem;padding-right:3.2rem}
+  .comment-form-cookies-consent input[type="checkbox"]{flex:0 0 auto;margin-top:.38em}
+  .comment-form-cookies-consent label{display:block;margin:0}
+  .back-to-top{right:12px;bottom:12px;width:40px;height:40px;min-width:40px}
+}

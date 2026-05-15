@@ -1,1 +1,5 @@
-<section class="not-found"><h1><?php esc_html_e('Nothing found', 'voidairo'); ?></h1><p><?php esc_html_e('Try searching for a different keyword.', 'voidairo'); ?></p><?php get_search_form(); ?></section>
+<section class="not-found">
+  <h1><?php esc_html_e('Nothing found', 'voidairo'); ?></h1>
+  <p><?php esc_html_e('Try searching for a different keyword.', 'voidairo'); ?></p>
+  <?php if (!is_search()) { get_search_form(); } ?>
+</section>
