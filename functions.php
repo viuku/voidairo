@@ -20,6 +20,7 @@ function voidairo_defaults() {
         'meta_views' => true,
         'meta_likes' => true,
         'meta_comments' => true,
+        'meta_order' => 'date,author,category,views,likes,comments',
         'show_read_more' => true,
         'hero_image' => '',
         'hero_image_id' => 0,
@@ -189,28 +190,41 @@ function voidairo_track_view() {
 }
 add_action('template_redirect', 'voidairo_track_view');
 
+function voidairo_meta_keys() {
+    return array('date', 'author', 'category', 'views', 'likes', 'comments');
+}
+
+function voidairo_meta_order() {
+    $raw = (string) voidairo_option_value('meta_order', 'date,author,category,views,likes,comments');
+    $parts = preg_split('/[\s,，|]+/u', $raw);
+    $allowed = voidairo_meta_keys();
+    $keys = array();
+    foreach ($parts as $part) {
+        $key = sanitize_key($part);
+        if (in_array($key, $allowed, true) && !in_array($key, $keys, true)) { $keys[] = $key; }
+    }
+    return $keys;
+}
+
 function voidairo_post_meta() {
     $items = array();
-    if (voidairo_option('meta_date')) {
-        $items[] = '<time datetime="' . esc_attr(get_the_date(DATE_W3C)) . '">' . esc_html(get_the_date()) . '</time>';
-    }
-    if (voidairo_option('meta_author')) {
-        $items[] = '<span>' . esc_html(get_the_author()) . '</span>';
-    }
-    if (voidairo_option('meta_category')) {
-        $cats = get_the_category_list(', ');
-        if ($cats) { $items[] = '<span>' . wp_kses_post($cats) . '</span>'; }
-    }
-    if (voidairo_option('views') && voidairo_option('meta_views')) {
-        $items[] = '<span>' . sprintf(esc_html__('%s views', 'voidairo'), esc_html(number_format_i18n(voidairo_get_views()))) . '</span>';
-    }
-    if (voidairo_option('likes') && voidairo_option('meta_likes')) {
-        $items[] = '<span>' . sprintf(esc_html__('%s likes', 'voidairo'), esc_html(number_format_i18n(voidairo_get_likes()))) . '</span>';
-    }
-    if (voidairo_option('meta_comments') && !post_password_required() && comments_open()) {
-        ob_start();
-        comments_popup_link(__('No comments', 'voidairo'), __('1 comment', 'voidairo'), __('% comments', 'voidairo'));
-        $items[] = '<span>' . ob_get_clean() . '</span>';
+    foreach (voidairo_meta_order() as $key) {
+        if ('date' === $key) {
+            $items[] = '<time datetime="' . esc_attr(get_the_date(DATE_W3C)) . '">' . esc_html(get_the_date()) . '</time>';
+        } elseif ('author' === $key) {
+            $items[] = '<span>' . esc_html(get_the_author()) . '</span>';
+        } elseif ('category' === $key) {
+            $cats = get_the_category_list(', ');
+            if ($cats) { $items[] = '<span>' . wp_kses_post($cats) . '</span>'; }
+        } elseif ('views' === $key && voidairo_option('views')) {
+            $items[] = '<span>' . sprintf(esc_html__('%s views', 'voidairo'), esc_html(number_format_i18n(voidairo_get_views()))) . '</span>';
+        } elseif ('likes' === $key && voidairo_option('likes')) {
+            $items[] = '<span>' . sprintf(esc_html__('%s likes', 'voidairo'), esc_html(number_format_i18n(voidairo_get_likes()))) . '</span>';
+        } elseif ('comments' === $key && !post_password_required() && comments_open()) {
+            ob_start();
+            comments_popup_link(__('No comments', 'voidairo'), __('1 comment', 'voidairo'), __('% comments', 'voidairo'));
+            $items[] = '<span>' . ob_get_clean() . '</span>';
+        }
     }
     if (!$items) { return; }
     echo '<div class="post-meta">' . implode('<span aria-hidden="true">•</span>', $items) . '</div>';
@@ -265,10 +279,18 @@ function voidairo_sanitize_options($input) {
     $input = is_array($input) ? $input : array();
     $defaults = voidairo_defaults();
     $output = array();
-    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'meta_date', 'meta_author', 'meta_category', 'meta_views', 'meta_likes', 'meta_comments', 'show_read_more');
+    $boolean_keys = array('serif', 'auto_dark', 'pjax', 'ajax_comments', 'toc', 'likes', 'views', 'mac_code', 'show_card_meta', 'show_read_more');
     foreach ($boolean_keys as $key) { $output[$key] = !empty($input[$key]); }
     $output['hero_image'] = isset($input['hero_image']) ? esc_url_raw(trim(wp_unslash($input['hero_image']))) : '';
     $output['hero_image_id'] = isset($input['hero_image_id']) ? absint($input['hero_image_id']) : 0;
+    $meta_order = isset($input['meta_order']) ? sanitize_text_field(wp_unslash($input['meta_order'])) : $defaults['meta_order'];
+    $meta_parts = preg_split('/[\s,，|]+/u', $meta_order);
+    $meta_clean = array();
+    foreach ($meta_parts as $part) {
+        $key = sanitize_key($part);
+        if (in_array($key, voidairo_meta_keys(), true) && !in_array($key, $meta_clean, true)) { $meta_clean[] = $key; }
+    }
+    $output['meta_order'] = implode(',', $meta_clean);
     $dark = isset($input['dark_mode']) ? sanitize_key(wp_unslash($input['dark_mode'])) : $defaults['dark_mode'];
     $output['dark_mode'] = in_array($dark, array('system', 'dark', 'light'), true) ? $dark : $defaults['dark_mode'];
     $output['hero_title'] = isset($input['hero_title']) ? sanitize_text_field(wp_unslash($input['hero_title'])) : '';
@@ -283,17 +305,40 @@ function voidairo_register_settings() {
 }
 add_action('admin_init', 'voidairo_register_settings');
 
+
+function voidairo_render_manual_update_box() {
+    if (!current_user_can('update_themes')) {
+        echo '<p>当前账号没有更新主题权限。</p>';
+        return;
+    }
+    if (isset($_POST['voidairo_check_update']) && check_admin_referer('voidairo_check_update_action', 'voidairo_check_update_nonce')) {
+        delete_site_transient('voidairo_github_release');
+        delete_site_transient('update_themes');
+        wp_update_themes();
+        echo '<div class="notice notice-success inline"><p>已重新检查 GitHub Release 更新。</p></div>';
+    }
+    $updates = get_site_transient('update_themes');
+    $theme = get_stylesheet();
+    $current = wp_get_theme()->get('Version');
+    $update = isset($updates->response[$theme]) ? $updates->response[$theme] : null;
+    echo '<p>当前版本：<strong>' . esc_html($current) . '</strong></p>';
+    if ($update && !empty($update['new_version'])) {
+        $url = wp_nonce_url(admin_url('update.php?action=upgrade-theme&theme=' . rawurlencode($theme)), 'upgrade-theme_' . $theme);
+        echo '<p>发现新版本：<strong>' . esc_html($update['new_version']) . '</strong> <a class="button button-primary" href="' . esc_url($url) . '">手动更新主题</a></p>';
+    } else {
+        echo '<p>暂未发现可用更新。</p>';
+    }
+    echo '<form method="post" style="margin-top:8px">';
+    wp_nonce_field('voidairo_check_update_action', 'voidairo_check_update_nonce');
+    submit_button('手动检查更新', 'secondary', 'voidairo_check_update', false);
+    echo '</form>';
+}
+
 function voidairo_settings_page() {
     if (!current_user_can('edit_theme_options')) { return; }
     $opts = voidairo_options();
     $checks = array(
         'show_card_meta' => '首页/列表文章显示元信息区域',
-        'meta_date' => '元信息：显示日期',
-        'meta_author' => '元信息：显示作者',
-        'meta_category' => '元信息：显示分类',
-        'meta_views' => '元信息：显示浏览量',
-        'meta_likes' => '元信息：显示点赞数',
-        'meta_comments' => '元信息：显示评论数',
         'show_read_more' => '首页/列表文章显示 Read more 按钮',
         'pjax' => '启用 PJAX 页面无刷新切换（如果站点闪烁或异常可关闭）',
         'ajax_comments' => '启用 AJAX 评论',
@@ -323,12 +368,15 @@ function voidairo_settings_page() {
     foreach ($font_presets as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['font_preset'], $key, false) . '>' . esc_html($label) . '</option>'; }
     echo '</select></td></tr></tbody></table>';
     echo '<h2>显示与功能开关</h2><table class="form-table" role="presentation"><tbody>';
+    echo '<tr><th scope="row"><label for="voidairo_meta_order">元信息显示与排序</label></th><td><input id="voidairo_meta_order" class="regular-text" type="text" name="voidairo_options[meta_order]" value="' . esc_attr($opts['meta_order']) . '" placeholder="date,author,category,views,likes,comments" list="voidairo-meta-presets"><datalist id="voidairo-meta-presets"><option value="date,author,category,views,likes,comments"><option value="date,category,views,likes"><option value="date,author,category"><option value="date,views,comments"><option value="date"></datalist><p class="description">一行设置要显示的项目和顺序，逗号分隔。可用：date 日期、author 作者、category 分类、views 浏览量、likes 点赞、comments 评论。留空则不显示。</p></td></tr>';
     foreach ($checks as $key => $label) {
         echo '<tr><th scope="row">' . esc_html($label) . '</th><td><label><input type="checkbox" name="voidairo_options[' . esc_attr($key) . ']" value="1" ' . checked(!empty($opts[$key]), true, false) . '> 启用</label></td></tr>';
     }
     echo '</tbody></table>';
     submit_button('保存设置');
-    echo '</form><script>(function($){$(function(){var frame;$("#voidairo-pick-hero").on("click",function(e){e.preventDefault();if(frame){frame.open();return;}frame=wp.media({title:"选择首页顶部大图",button:{text:"使用这张图片"},multiple:false});frame.on("select",function(){var a=frame.state().get("selection").first().toJSON();$("#voidairo_hero_image").val(a.url);$("#voidairo_hero_image_id").val(a.id);$("#voidairo-hero-preview").html("<img src=\""+a.url+"\" style=\"max-width:100%;height:auto;border-radius:8px\">");});frame.open();});$("#voidairo-clear-hero").on("click",function(e){e.preventDefault();$("#voidairo_hero_image,#voidairo_hero_image_id").val("");$("#voidairo-hero-preview").empty();});});})(jQuery);</script></div>';
+    echo '</form><hr><h2>主题更新</h2>';
+    voidairo_render_manual_update_box();
+    echo '<script>(function($){$(function(){var frame;$("#voidairo-pick-hero").on("click",function(e){e.preventDefault();if(frame){frame.open();return;}frame=wp.media({title:"选择首页顶部大图",button:{text:"使用这张图片"},multiple:false});frame.on("select",function(){var a=frame.state().get("selection").first().toJSON();$("#voidairo_hero_image").val(a.url);$("#voidairo_hero_image_id").val(a.id);$("#voidairo-hero-preview").html("<img src=\""+a.url+"\" style=\"max-width:100%;height:auto;border-radius:8px\">");});frame.open();});$("#voidairo-clear-hero").on("click",function(e){e.preventDefault();$("#voidairo_hero_image,#voidairo_hero_image_id").val("");$("#voidairo-hero-preview").empty();});});})(jQuery);</script></div>';
 }
 
 function voidairo_fallback_menu() {

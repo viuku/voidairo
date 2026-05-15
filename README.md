@@ -7,7 +7,7 @@ VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VO
 - WordPress 标准主题结构，可直接放入 `wp-content/themes/voidairo`。
 - VOID 风格：安静留白、阅读优先、归档模板、写作增强、日夜模式、衬线阅读字体可选。
 - Sakurairo 风格封面动效：特色图放大、轻微旋转、跟随鼠标光斑、毛玻璃标题层、从封面采样主题色。
-- 后台 `外观 → VOIDairo` 设置：PJAX、AJAX 评论、TOC、点赞、阅读量、Mac 风格代码块、衬线字体、自动深色模式。
+- 后台 `外观 → VOIDairo 设置`：PJAX、AJAX 评论、TOC、点赞、阅读量、Mac 风格代码块、衬线字体、深色模式、元信息显示排序、手动检查/更新主题。
 - SEO：title-tag、canonical、meta description、Open Graph、Twitter Card、WebSite/BlogPosting JSON-LD。
 - 性能：无 jQuery、无构建依赖、JS defer、图片 lazy loading、content-visibility、IntersectionObserver。
 - 响应式菜单、侧栏、小工具、评论、深色模式。
