@@ -428,35 +428,68 @@ add_filter('the_content', 'voidairo_ruby_inline_syntax', 8);
 add_filter('comment_text', 'voidairo_ruby_inline_syntax', 8);
 
 
-function voidairo_highlight_search_terms($text, $query = null) {
+function voidairo_search_terms($query = null) {
     $query = null === $query ? get_search_query() : $query;
-    $text = wp_strip_all_tags((string) $text);
-    $escaped = esc_html($text);
-    $terms = array_filter(array_unique(preg_split('/\s+/u', trim((string) $query))));
-    if (!$terms) { return $escaped; }
-    foreach ($terms as $term) {
-        $term = preg_quote($term, '/');
-        if ('' === $term) { continue; }
-        $escaped = preg_replace('/(' . $term . ')/iu', '<mark class="search-mark">$1</mark>', $escaped);
+    $raw_terms = preg_split('/\s+/u', trim((string) $query));
+    $terms = array();
+    foreach ($raw_terms as $term) {
+        $term = trim($term);
+        if ('' !== $term && !in_array($term, $terms, true)) { $terms[] = $term; }
     }
-    return $escaped;
+    usort($terms, function ($a, $b) { return strlen($b) <=> strlen($a); });
+    return $terms;
+}
+
+function voidairo_highlight_search_terms($text, $query = null) {
+    $text = wp_strip_all_tags((string) $text);
+    $terms = voidairo_search_terms($query);
+    if (!$terms) { return esc_html($text); }
+    $pattern = '/(' . implode('|', array_map(function ($term) { return preg_quote($term, '/'); }, $terms)) . ')/iu';
+    $parts = preg_split($pattern, $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if (!is_array($parts)) { return esc_html($text); }
+    $out = '';
+    foreach ($parts as $part) {
+        if ('' === $part) { continue; }
+        $is_match = preg_match($pattern, $part);
+        $out .= $is_match ? '<mark class="search-mark">' . esc_html($part) . '</mark>' : esc_html($part);
+    }
+    return $out;
+}
+
+function voidairo_text_pos($haystack, $needle) {
+    if (function_exists('mb_stripos')) { return mb_stripos($haystack, $needle, 0, get_bloginfo('charset') ?: 'UTF-8'); }
+    return stripos($haystack, $needle);
+}
+
+function voidairo_text_substr($text, $start, $length = null) {
+    if (function_exists('mb_substr')) { return mb_substr($text, $start, $length, get_bloginfo('charset') ?: 'UTF-8'); }
+    return null === $length ? substr($text, $start) : substr($text, $start, $length);
+}
+
+function voidairo_text_strlen($text) {
+    if (function_exists('mb_strlen')) { return mb_strlen($text, get_bloginfo('charset') ?: 'UTF-8'); }
+    return strlen($text);
 }
 
 function voidairo_search_snippets($post_id, $query, $limit = 3) {
     $raw = get_post_field('post_content', $post_id);
     $text = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags(strip_shortcodes($raw))));
-    $terms = array_filter(array_unique(preg_split('/\s+/u', trim((string) $query))));
+    $terms = voidairo_search_terms($query);
     if (!$text || !$terms) { return '<p>' . esc_html(get_the_excerpt($post_id)) . '</p>'; }
     $snippets = array();
+    $length = voidairo_text_strlen($text);
     foreach ($terms as $term) {
         if (count($snippets) >= $limit) { break; }
-        if (!preg_match_all('/' . preg_quote($term, '/') . '/iu', $text, $matches, PREG_OFFSET_CAPTURE)) { continue; }
-        foreach ($matches[0] as $match) {
-            if (count($snippets) >= $limit) { break; }
-            $pos = max(0, (int) $match[1] - 42);
-            $chunk = function_exists('mb_substr') ? mb_substr($text, $pos, 110) : substr($text, $pos, 110);
-            $length = function_exists('mb_strlen') ? mb_strlen($text) : strlen($text);
-            $snippets[] = ($pos > 0 ? '…' : '') . $chunk . ($length > $pos + 110 ? '…' : '');
+        $offset = 0;
+        while (count($snippets) < $limit) {
+            $rest = voidairo_text_substr($text, $offset);
+            $found = voidairo_text_pos($rest, $term);
+            if (false === $found) { break; }
+            $pos = $offset + (int) $found;
+            $start = max(0, $pos - 42);
+            $chunk = voidairo_text_substr($text, $start, 120);
+            $snippets[] = ($start > 0 ? '…' : '') . $chunk . ($length > $start + 120 ? '…' : '');
+            $offset = $pos + max(1, voidairo_text_strlen($term));
         }
     }
     if (!$snippets) { $snippets[] = wp_trim_words($text, 28, '…'); }
