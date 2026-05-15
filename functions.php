@@ -478,7 +478,7 @@ function voidairo_photo_shortcode($atts) {
     $src = esc_url($atts['src']);
     if ('' === $src) { return ''; }
     $caption = trim((string) $atts['caption']);
-    $html = '<figure class="va-photo"><img src="' . $src . '" alt="' . esc_attr($atts['alt']) . '" loading="lazy" decoding="async">';
+    $html = '<figure class="va-photo"><img class="skip-lazy no-lazy" data-no-lazy="1" src="' . $src . '" alt="' . esc_attr($atts['alt']) . '" loading="eager" decoding="async">';
     if ('' !== $caption) {
         $html .= '<figcaption>' . esc_html($caption) . '</figcaption>';
     }
