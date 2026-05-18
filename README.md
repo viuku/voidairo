@@ -2,6 +2,12 @@
 
 VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VOID 的简洁、留白、阅读体验和功能组织；文章列表里有特色图的文章使用 Sakurairo 风格的封面悬浮动效。主题没有复制 VOID 或 Sakurairo 的代码。
 
+![VOIDairo 主题预览](assets/readme-preview.png)
+
+## 预览
+
+- 正在使用 VOIDairo 的网站：[DuckX](https://www.duckx.top)
+
 ## 特性
 
 - WordPress 标准主题结构，可直接放入 `wp-content/themes/voidairo`。
@@ -11,6 +17,13 @@ VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VO
 - SEO：title-tag、canonical、meta description、Open Graph、Twitter Card、WebSite/BlogPosting JSON-LD。
 - 性能：无 jQuery、无构建依赖、JS defer、图片 lazy loading、content-visibility、IntersectionObserver。
 - 响应式菜单、侧栏、小工具、评论、深色模式。
+
+## 安装使用
+
+1. 前往 [Releases](https://github.com/viuku/voidairo/releases) 下载最新版本的主题压缩包。
+2. 登录 WordPress 后台，进入 `外观 → 主题 → 添加新主题 → 上传主题`。
+3. 选择下载好的 `voidairo-*.zip` 文件，点击安装并启用。
+4. 启用后可在 `外观 → VOIDairo 设置` 中调整 PJAX、AJAX 评论、TOC、点赞、阅读量、深色模式、元信息排序等选项。
 
 ## 写作增强
 
@@ -33,47 +46,6 @@ VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VO
 ## Archives 页面模板
 
 新建一个 WordPress 页面，在页面模板里选择 `Archives`，即可生成按年份分组的归档页。
-
-## 本地 Docker 测试
-
-```bash
-docker compose up -d
-```
-
-访问：
-
-```text
-http://localhost:8089
-```
-
-第一次启动后可以用 wp-cli 容器安装 WordPress：
-
-```bash
-docker run --rm --volumes-from wptheme-wordpress-1 --network wptheme_default -u 33 \
-  -e WORDPRESS_DB_HOST=db:3306 \
-  -e WORDPRESS_DB_USER=wordpress \
-  -e WORDPRESS_DB_PASSWORD=wordpress \
-  -e WORDPRESS_DB_NAME=wordpress \
-  wordpress:cli wp core install --path=/var/www/html \
-  --url=http://localhost:8089 --title='VOIDairo Test' \
-  --admin_user=admin --admin_password=adminpass \
-  --admin_email=admin@example.com --skip-email
-
-docker run --rm --volumes-from wptheme-wordpress-1 --network wptheme_default -u 33 \
-  -e WORDPRESS_DB_HOST=db:3306 \
-  -e WORDPRESS_DB_USER=wordpress \
-  -e WORDPRESS_DB_PASSWORD=wordpress \
-  -e WORDPRESS_DB_NAME=wordpress \
-  wordpress:cli wp theme activate voidairo --path=/var/www/html
-```
-
-## 打包
-
-```bash
-cd /path/to/voidairo
-VERSION=$(grep -m1 "^Version:" style.css | awk '{print $2}')
-zip -qr ../voidairo-${VERSION}.zip . -x@.distignore
-```
 
 ## License
 
