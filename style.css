@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.13
+Version: 1.0.14
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -523,12 +523,12 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
   }
 }
 
-/* v1.0.13 center tablet navigation and remove duplicate focus warnings */
+/* v1.0.14 center tablet navigation and remove duplicate focus warnings */
 @media (min-width:641px) and (max-width:900px){
   .site-header__inner{
-    display:grid;
-    grid-template-columns:minmax(84px,1fr) minmax(0,auto) minmax(48px,1fr);
-    align-items:center;
+    position:relative;
+    display:flex;
+    justify-content:space-between;
     gap:10px;
     padding-left:16px;
     padding-right:16px;
@@ -541,8 +541,11 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     max-width:22vw;
   }
   .site-nav{
-    justify-self:center;
-    max-width:calc(100vw - 220px)!important;
+    position:absolute!important;
+    left:calc(50% + 8px)!important;
+    top:50%!important;
+    max-width:calc(100vw - 260px)!important;
+    transform:translate(-50%,-50%)!important;
   }
   .primary-menu{
     justify-content:center;
