@@ -2,7 +2,7 @@
 <article id="post-<?php the_ID(); ?>" <?php post_class('post-card' . ($has_thumb ? ' has-thumbnail' : '')); ?>>
   <?php if (is_sticky()) : ?><span class="sticky-badge"><?php esc_html_e('Pinned', 'voidairo'); ?></span><?php endif; ?>
   <?php if ($has_thumb) : ?>
-    <a class="post-card__thumb" href="<?php the_permalink(); ?>" aria-hidden="true" tabindex="-1"><?php voidairo_thumbnail('voidairo-card', 'post-card__image'); ?></a>
+    <a class="post-card__thumb" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(sprintf(__('Read article: %s', 'voidairo'), get_the_title())); ?>" tabindex="-1"><?php voidairo_thumbnail('voidairo-card', 'post-card__image'); ?></a>
   <?php else : ?>
     <a class="post-card__overlay-link" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(sprintf(__('Read article: %s', 'voidairo'), get_the_title())); ?>" tabindex="-1"></a>
   <?php endif; ?>
