@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.11
+Version: 1.0.12
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -449,4 +449,76 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
 .voidairo-like[disabled]{
   opacity:.72;
   cursor:default;
+}
+
+/* v1.0.12 reduce card hover repaint while scrolling */
+.post-card,
+.post-card__thumb,
+.post-card__thumb img,
+.post-card__thumb:before,
+.post-card__thumb:after,
+.has-thumbnail .post-card__body{
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+.post-card__thumb{
+  isolation:isolate;
+  transform:translateZ(0);
+}
+.post-card__thumb img{
+  display:block;
+  will-change:transform;
+  transform:translateZ(0) scale(1.012);
+}
+.post-card:hover .post-card__thumb img,
+.post-card:focus-within .post-card__thumb img{
+  transform:translateZ(0) scale(1.055);
+}
+body.is-scrolling .post-card:hover{
+  box-shadow:var(--va-shadow);
+  transform:translateY(0);
+}
+body.is-scrolling .post-card:hover .post-card__thumb img,
+body.is-scrolling .post-card:focus-within .post-card__thumb img{
+  filter:saturate(.94) contrast(.98);
+  transform:translateZ(0) scale(1.012);
+}
+body.is-scrolling .post-card:hover .post-card__thumb:before{
+  opacity:.86;
+}
+body.is-scrolling .post-card:hover .post-card__thumb:after{
+  opacity:0;
+  transform:translateX(-20%) rotate(8deg);
+}
+body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
+  background:rgba(255,255,255,.72);
+  transform:none;
+}
+[data-theme="dark"] body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
+  background:rgba(22,24,28,.72);
+}
+@media (hover:none), (pointer:coarse){
+  .post-card:hover{
+    box-shadow:var(--va-shadow);
+    transform:translateY(0);
+  }
+  .post-card:hover .post-card__thumb img,
+  .post-card:focus-within .post-card__thumb img{
+    filter:saturate(.94) contrast(.98);
+    transform:translateZ(0) scale(1.012);
+  }
+  .post-card:hover .post-card__thumb:before{
+    opacity:.86;
+  }
+  .post-card:hover .post-card__thumb:after{
+    opacity:0;
+    transform:translateX(-20%) rotate(8deg);
+  }
+  .post-card.has-thumbnail:hover .post-card__body{
+    background:rgba(255,255,255,.72);
+    transform:none;
+  }
+  [data-theme="dark"] .post-card.has-thumbnail:hover .post-card__body{
+    background:rgba(22,24,28,.72);
+  }
 }

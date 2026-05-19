@@ -182,6 +182,19 @@
     top.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function initScrollState() {
+    if (document.body.dataset.scrollStateReady) return;
+    document.body.dataset.scrollStateReady = '1';
+    let scrollTimer = 0;
+    window.addEventListener('scroll', () => {
+      document.body.classList.add('is-scrolling');
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        document.body.classList.remove('is-scrolling');
+      }, 140);
+    }, { passive: true });
+  }
+
   function shouldPjax(anchor) {
     if (cfg.options.pjax === false || !anchor || anchor.target || anchor.hasAttribute('download')) return false;
     if (anchor.closest('#wpadminbar, .comment-reply-link, .no-pjax, [data-no-pjax], .archive-list')) return false;
@@ -355,6 +368,7 @@
     initLikes(scope);
     initAjaxComments(scope);
     initCodeHighlight(scope);
+    initScrollState();
     initBackToTop();
     initSearchForms();
   }
