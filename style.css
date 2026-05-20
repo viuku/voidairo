@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.15
+Version: 1.0.16
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -419,8 +419,8 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
 }
 
 
-/* v1.0.8 card/archive/admin-meta refinements */
-.post-card:not(.has-thumbnail) .post-card__overlay-link{
+/* v1.0.16 card/archive/admin-meta refinements */
+.post-card__overlay-link{
   position:absolute;
   inset:0;
   z-index:1;
@@ -430,11 +430,13 @@ body.font-preset-chinese{--va-font-sans:-apple-system,BlinkMacSystemFont,"PingFa
 }
 .post-card:not(.has-thumbnail) .post-card__body{
   position:relative;
-  z-index:2;
+}
+.post-card__body{
+  z-index:3;
   pointer-events:none;
 }
-.post-card:not(.has-thumbnail) .post-card__body a,
-.post-card:not(.has-thumbnail) .post-card__body button{
+.post-card__body a,
+.post-card__body button{
   pointer-events:auto;
 }
 .archive-list li{
@@ -523,7 +525,7 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
   }
 }
 
-/* v1.0.15 center tablet navigation and remove duplicate focus warnings */
+/* v1.0.16 center tablet navigation and remove duplicate focus warnings */
 @media (min-width:641px) and (max-width:900px){
   .site-header__inner{
     position:relative;
@@ -560,4 +562,9 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
   .header-actions{
     justify-self:end;
   }
+}
+
+/* v1.0.16 remove cursor-following thumbnail light */
+.post-card__thumb:after{
+  content:none!important;
 }

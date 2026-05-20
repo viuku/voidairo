@@ -58,11 +58,6 @@
       const img = card.querySelector('.post-card__image');
       if (img && img.complete) sampleAccent(card, img);
       if (img) img.addEventListener('load', () => sampleAccent(card, img), { once: true });
-      card.addEventListener('pointermove', (event) => {
-        const r = card.getBoundingClientRect();
-        card.style.setProperty('--mx', `${((event.clientX - r.left) / r.width) * 100}%`);
-        card.style.setProperty('--my', `${((event.clientY - r.top) / r.height) * 100}%`);
-      }, { passive: true });
     });
   }
 

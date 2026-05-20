@@ -2,7 +2,7 @@
 
 VOIDairo 是一个从零编写的 WordPress 博客主题：视觉方向参考 VOID 的简洁、留白、阅读体验和功能组织；文章列表里有特色图的文章使用 Sakurairo 风格的封面悬浮动效。主题没有复制 VOID 或 Sakurairo 的代码。
 
-![VOIDairo 主题预览](assets/readme-preview.png)
+![VOIDairo 主题预览](assets/readme-preview.jpeg)
 
 ## 预览
 
