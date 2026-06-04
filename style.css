@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.16
+Version: 1.0.17
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -567,4 +567,147 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
 /* v1.0.16 remove cursor-following thumbnail light */
 .post-card__thumb:after{
   content:none!important;
+}
+
+/* v1.0.17 mobile card cover and navigation polish */
+.nav-toggle__bars{
+  position:relative;
+  display:grid;
+  gap:4px;
+  width:17px;
+  height:16px;
+  place-content:center;
+}
+.nav-toggle__bars span{
+  display:block;
+  width:17px;
+  height:2px;
+  border-radius:999px;
+  background:currentColor;
+  transform-origin:center;
+  transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .18s ease,width .24s ease;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bars span:first-child{
+  transform:translateY(6px) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bars span:nth-child(2){
+  opacity:0;
+  transform:scaleX(.45);
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bars span:last-child{
+  transform:translateY(-6px) rotate(-45deg);
+}
+
+@media (max-width:640px){
+  .site-header{
+    height:auto;
+    min-height:var(--va-header-h);
+  }
+  .site-header__inner{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    grid-template-rows:var(--va-header-h) auto;
+    align-items:center;
+    gap:0 10px;
+    height:auto;
+    min-height:var(--va-header-h);
+  }
+  .brand{
+    grid-column:1;
+    grid-row:1;
+    min-width:0;
+  }
+  .nav-toggle{
+    grid-column:2;
+    grid-row:1;
+    justify-self:center;
+  }
+  .header-actions{
+    grid-column:3;
+    grid-row:1;
+    justify-self:end;
+  }
+  .site-nav{
+    position:static!important;
+    grid-column:1 / -1;
+    grid-row:2;
+    width:100%;
+    max-height:0!important;
+    padding:0!important;
+    margin:0;
+    border:0!important;
+    box-shadow:none!important;
+    background:transparent!important;
+    opacity:0;
+    overflow:hidden;
+    pointer-events:none;
+    transform:translateY(-8px)!important;
+    transform-origin:top center;
+    clip-path:inset(0 0 100% 0 round 20px);
+    transition:max-height .38s cubic-bezier(.22,1,.36,1),opacity .2s ease,transform .38s cubic-bezier(.22,1,.36,1),clip-path .38s cubic-bezier(.22,1,.36,1);
+  }
+  .site-nav.is-open{
+    max-height:min(62vh,390px)!important;
+    opacity:1;
+    overflow:auto;
+    pointer-events:auto;
+    transform:translateY(0)!important;
+    clip-path:inset(0 0 0 0 round 20px);
+  }
+  .primary-menu{
+    display:grid!important;
+    gap:4px;
+    margin:10px 0 14px;
+    padding:10px;
+    border:1px solid var(--va-border);
+    border-radius:20px;
+    background:color-mix(in srgb,var(--va-surface-solid) 94%,transparent);
+    box-shadow:0 18px 45px rgba(25,28,34,.10);
+    backdrop-filter:saturate(170%) blur(16px);
+  }
+  [data-theme="dark"] .primary-menu{
+    background:color-mix(in srgb,var(--va-surface-solid) 92%,transparent);
+  }
+  .site-nav .primary-menu li{
+    opacity:0;
+    transform:translateY(-6px);
+    transition:opacity .2s ease,transform .3s cubic-bezier(.22,1,.36,1);
+  }
+  .site-nav.is-open .primary-menu li{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .site-nav.is-open .primary-menu li:nth-child(2){transition-delay:.03s}
+  .site-nav.is-open .primary-menu li:nth-child(3){transition-delay:.06s}
+  .site-nav.is-open .primary-menu li:nth-child(4){transition-delay:.09s}
+  .site-nav.is-open .primary-menu li:nth-child(5){transition-delay:.12s}
+  .primary-menu a{
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    padding:.74rem .9rem;
+    border-radius:16px;
+  }
+  body.nav-open .hero{
+    margin-top:18px!important;
+  }
+  body.nav-open #primary{
+    padding-top:18px!important;
+  }
+  body.nav-open .hero + #primary,
+  body.nav-open:has(.hero) #primary{
+    padding-top:18px!important;
+  }
+  .post-card.has-thumbnail{
+    --va-mobile-card-height:clamp(300px,72vw,380px);
+    min-height:var(--va-mobile-card-height);
+  }
+  .post-card__thumb{
+    height:var(--va-mobile-card-height,300px);
+  }
+  .post-card__thumb,
+  .post-card__thumb img,
+  .article__cover img{
+    display:block;
+  }
 }

@@ -19,7 +19,7 @@
       ?>
       <span class="brand__text"><span class="brand__title"><?php echo esc_html(get_bloginfo('name')); ?></span></span>
     </a>
-    <button class="nav-toggle icon-button" type="button" aria-controls="site-navigation" aria-expanded="false" aria-label="<?php esc_attr_e('Open menu', 'voidairo'); ?>"><svg class="fa-bars" viewBox="0 0 448 512" aria-hidden="true" focusable="false"><path fill="currentColor" d="M0 96C0 78.3 14.3 64 32 64h384c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zm0 160c0-17.7 14.3-32 32-32h384c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zm448 160c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32h384c17.7 0 32 14.3 32 32z"/></svg></button>
+    <button class="nav-toggle icon-button" type="button" aria-controls="site-navigation" aria-expanded="false" aria-label="<?php esc_attr_e('Open menu', 'voidairo'); ?>" data-open-label="<?php esc_attr_e('Open menu', 'voidairo'); ?>" data-close-label="<?php esc_attr_e('Close menu', 'voidairo'); ?>"><span class="nav-toggle__bars" aria-hidden="true"><span></span><span></span><span></span></span></button>
     <nav id="site-navigation" class="site-nav" aria-label="<?php esc_attr_e('Primary menu', 'voidairo'); ?>">
       <?php wp_nav_menu(array('theme_location' => 'primary', 'menu_class' => 'primary-menu', 'container' => false, 'fallback_cb' => 'voidairo_fallback_menu')); ?>
     </nav>

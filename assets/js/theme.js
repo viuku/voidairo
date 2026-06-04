@@ -17,14 +17,40 @@
     });
   }
 
+  function setMobileNavOpen(open) {
+    const navToggle = document.querySelector('.nav-toggle');
+    const nav = document.getElementById('site-navigation');
+    if (!navToggle || !nav) return;
+    nav.classList.toggle('is-open', open);
+    document.body.classList.toggle('nav-open', open);
+    navToggle.setAttribute('aria-expanded', String(open));
+    navToggle.setAttribute('aria-label', open ? (navToggle.dataset.closeLabel || 'Close menu') : (navToggle.dataset.openLabel || 'Open menu'));
+  }
+
   function initNav() {
     const navToggle = document.querySelector('.nav-toggle');
     const nav = document.getElementById('site-navigation');
-    if (navToggle && nav) navToggle.onclick = () => {
-      const open = nav.classList.toggle('is-open');
-      document.body.classList.toggle('nav-open', open);
-      navToggle.setAttribute('aria-expanded', String(open));
-    };
+    if (!navToggle || !nav) return;
+    navToggle.onclick = () => setMobileNavOpen(!nav.classList.contains('is-open'));
+    if (!nav.dataset.vaNavReady) {
+      nav.dataset.vaNavReady = '1';
+      nav.addEventListener('click', (event) => {
+        if (event.target.closest('a')) setMobileNavOpen(false);
+      });
+    }
+    if (!document.body.dataset.vaNavGlobalReady) {
+      document.body.dataset.vaNavGlobalReady = '1';
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setMobileNavOpen(false);
+      });
+      document.addEventListener('click', (event) => {
+        if (!document.body.classList.contains('nav-open') || event.target.closest('.site-header')) return;
+        setMobileNavOpen(false);
+      });
+      window.addEventListener('resize', () => {
+        if (window.matchMedia('(min-width: 641px)').matches) setMobileNavOpen(false);
+      }, { passive: true });
+    }
   }
 
   function sampleAccent(card, img) {
