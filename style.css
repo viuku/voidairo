@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.18
+Version: 1.0.19
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -569,7 +569,7 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
   content:none!important;
 }
 
-/* v1.0.18 mobile card cover and navigation polish */
+/* v1.0.19 mobile card cover and navigation polish */
 .nav-toggle__bars{
   position:relative;
   display:grid;
@@ -644,7 +644,9 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     pointer-events:none;
     transform:translate3d(0,-6px,0)!important;
     transform-origin:top center;
-    transition:max-height .46s cubic-bezier(.22,1,.36,1),opacity .28s ease,transform .46s cubic-bezier(.22,1,.36,1);
+    clip-path:inset(0 0 100% 0 round 20px);
+    -webkit-clip-path:inset(0 0 100% 0 round 20px);
+    transition:max-height .46s cubic-bezier(.22,1,.36,1),opacity .28s ease,transform .46s cubic-bezier(.22,1,.36,1),clip-path .46s cubic-bezier(.22,1,.36,1),-webkit-clip-path .46s cubic-bezier(.22,1,.36,1);
     will-change:max-height,opacity,transform;
   }
   .site-nav.is-open{
@@ -653,6 +655,8 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     overflow:hidden;
     pointer-events:auto;
     transform:translate3d(0,0,0)!important;
+    clip-path:inset(0 0 0 0 round 20px);
+    -webkit-clip-path:inset(0 0 0 0 round 20px);
   }
   .primary-menu{
     display:grid!important;
@@ -663,6 +667,8 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     border-radius:20px;
     background:color-mix(in srgb,var(--va-surface-solid) 94%,transparent);
     box-shadow:none!important;
+    backdrop-filter:saturate(170%) blur(16px);
+    -webkit-backdrop-filter:saturate(170%) blur(16px);
     opacity:0;
     transform:translate3d(0,-4px,0);
     transition:opacity .3s ease,transform .42s cubic-bezier(.22,1,.36,1);
