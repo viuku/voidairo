@@ -3,7 +3,7 @@ Theme Name: VOIDairo
 Theme URI: https://example.local/voidairo
 Author: Kairos + Hermes
 Description: A clean WordPress theme inspired by VOID's calm reading experience, rebuilt from scratch with Sakurairo-like featured-image hover motion, lightweight assets, accessibility and SEO defaults.
-Version: 1.0.17
+Version: 1.0.18
 Update URI: https://github.com/viuku/voidairo
 Requires at least: 6.0
 Tested up to: 6.8
@@ -569,7 +569,7 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
   content:none!important;
 }
 
-/* v1.0.17 mobile card cover and navigation polish */
+/* v1.0.18 mobile card cover and navigation polish */
 .nav-toggle__bars{
   position:relative;
   display:grid;
@@ -628,6 +628,7 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     justify-self:end;
   }
   .site-nav{
+    --va-nav-height:0px;
     position:static!important;
     grid-column:1 / -1;
     grid-row:2;
@@ -641,18 +642,17 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     opacity:0;
     overflow:hidden;
     pointer-events:none;
-    transform:translateY(-8px)!important;
+    transform:translate3d(0,-6px,0)!important;
     transform-origin:top center;
-    clip-path:inset(0 0 100% 0 round 20px);
-    transition:max-height .38s cubic-bezier(.22,1,.36,1),opacity .2s ease,transform .38s cubic-bezier(.22,1,.36,1),clip-path .38s cubic-bezier(.22,1,.36,1);
+    transition:max-height .46s cubic-bezier(.22,1,.36,1),opacity .28s ease,transform .46s cubic-bezier(.22,1,.36,1);
+    will-change:max-height,opacity,transform;
   }
   .site-nav.is-open{
-    max-height:min(62vh,390px)!important;
+    max-height:var(--va-nav-height)!important;
     opacity:1;
-    overflow:auto;
+    overflow:hidden;
     pointer-events:auto;
-    transform:translateY(0)!important;
-    clip-path:inset(0 0 0 0 round 20px);
+    transform:translate3d(0,0,0)!important;
   }
   .primary-menu{
     display:grid!important;
@@ -662,25 +662,24 @@ body.is-scrolling .post-card.has-thumbnail:hover .post-card__body{
     border:1px solid var(--va-border);
     border-radius:20px;
     background:color-mix(in srgb,var(--va-surface-solid) 94%,transparent);
-    box-shadow:0 18px 45px rgba(25,28,34,.10);
-    backdrop-filter:saturate(170%) blur(16px);
+    box-shadow:none!important;
+    opacity:0;
+    transform:translate3d(0,-4px,0);
+    transition:opacity .3s ease,transform .42s cubic-bezier(.22,1,.36,1);
   }
   [data-theme="dark"] .primary-menu{
     background:color-mix(in srgb,var(--va-surface-solid) 92%,transparent);
   }
-  .site-nav .primary-menu li{
-    opacity:0;
-    transform:translateY(-6px);
-    transition:opacity .2s ease,transform .3s cubic-bezier(.22,1,.36,1);
-  }
-  .site-nav.is-open .primary-menu li{
+  .site-nav.is-open .primary-menu{
     opacity:1;
-    transform:translateY(0);
+    transform:translate3d(0,0,0);
+    transition-delay:.06s;
   }
-  .site-nav.is-open .primary-menu li:nth-child(2){transition-delay:.03s}
-  .site-nav.is-open .primary-menu li:nth-child(3){transition-delay:.06s}
-  .site-nav.is-open .primary-menu li:nth-child(4){transition-delay:.09s}
-  .site-nav.is-open .primary-menu li:nth-child(5){transition-delay:.12s}
+  .site-nav .primary-menu li{
+    opacity:1;
+    transform:none;
+    transition:none;
+  }
   .primary-menu a{
     min-height:48px;
     display:flex;

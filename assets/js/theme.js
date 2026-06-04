@@ -21,6 +21,7 @@
     const navToggle = document.querySelector('.nav-toggle');
     const nav = document.getElementById('site-navigation');
     if (!navToggle || !nav) return;
+    nav.style.setProperty('--va-nav-height', `${nav.scrollHeight}px`);
     nav.classList.toggle('is-open', open);
     document.body.classList.toggle('nav-open', open);
     navToggle.setAttribute('aria-expanded', String(open));
@@ -49,6 +50,7 @@
       });
       window.addEventListener('resize', () => {
         if (window.matchMedia('(min-width: 641px)').matches) setMobileNavOpen(false);
+        else if (nav.classList.contains('is-open')) nav.style.setProperty('--va-nav-height', `${nav.scrollHeight}px`);
       }, { passive: true });
     }
   }
