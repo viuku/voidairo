@@ -6,7 +6,8 @@ VOIDairo WordPress Theme
 - WordPress 标准主题结构，可直接放入 wp-content/themes/voidairo 使用。
 - 文章列表卡片、特色图、毛玻璃信息层、Sakurairo 风格图片 hover 动画。
 - VOID 常见写作增强：Archives 页面模板、[notice]、[photos]、[links]、{{文字:注音}} / [ruby]。
-- 后台 外观 → VOIDairo 设置：PJAX、AJAX 评论、TOC、点赞、阅读量、代码块、字体、深色模式、元信息排序、手动检查/更新主题。
+- 后台 外观 → VOIDairo 设置：PJAX、AJAX 评论、TOC、点赞、阅读量、代码块、字体、深色模式、元信息排序、首页不显示的分类、手动检查/更新主题。
+- 首页可隐藏指定分类：勾选的分类不出现在首页列表（包括置顶）和侧栏最新文章，分类页、文章页、归档、搜索和 RSS 照常显示。
 - 无 jQuery，无构建依赖，前端 JS defer 加载。
 - 懒加载图片、content-visibility、IntersectionObserver 入场，适合长列表。
 - title-tag、canonical、meta description、Open Graph、Twitter Card、WebSite/BlogPosting JSON-LD。

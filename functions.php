@@ -27,6 +27,7 @@ function voidairo_defaults() {
         'hero_title' => '',
         'hero_subtitle' => '',
         'font_preset' => 'void',
+        'home_exclude_categories' => array(),
     );
 }
 
@@ -115,6 +116,64 @@ function voidairo_excerpt_length() { return 34; }
 add_filter('excerpt_length', 'voidairo_excerpt_length');
 function voidairo_excerpt_more() { return '…'; }
 add_filter('excerpt_more', 'voidairo_excerpt_more');
+
+function voidairo_home_excluded_categories() {
+    $ids = voidairo_option_value('home_exclude_categories', array());
+    return array_values(array_filter(wp_parse_id_list(is_array($ids) ? $ids : array())));
+}
+
+function voidairo_with_home_excluded_categories($ids) {
+    return array_values(array_unique(array_merge(wp_parse_id_list($ids), voidairo_home_excluded_categories())));
+}
+
+function voidairo_exclude_home_categories($query) {
+    if (is_admin() || !$query->is_main_query() || !$query->is_home() || $query->is_feed()) { return; }
+    $excluded = voidairo_home_excluded_categories();
+    if (!$excluded) { return; }
+    $query->set('category__not_in', voidairo_with_home_excluded_categories($query->get('category__not_in')));
+    // Sticky posts are fetched separately and skip category__not_in, but WordPress honours post__not_in for them.
+    $sticky = get_option('sticky_posts');
+    if (!$sticky || $query->get('ignore_sticky_posts')) { return; }
+    $hidden_sticky = get_posts(array('post__in' => $sticky, 'category__in' => $excluded, 'fields' => 'ids', 'posts_per_page' => -1, 'no_found_rows' => true, 'ignore_sticky_posts' => true));
+    if ($hidden_sticky) {
+        $query->set('post__not_in', array_values(array_unique(array_merge(wp_parse_id_list($query->get('post__not_in')), $hidden_sticky))));
+    }
+}
+add_action('pre_get_posts', 'voidairo_exclude_home_categories');
+
+function voidairo_recent_posts_widget_args($args) {
+    if (voidairo_home_excluded_categories()) { $args['category__not_in'] = voidairo_with_home_excluded_categories($args['category__not_in'] ?? array()); }
+    return $args;
+}
+add_filter('widget_posts_args', 'voidairo_recent_posts_widget_args');
+
+// The fallback sidebar lists recent posts with wp_get_archives(), which only offers a SQL hook.
+function voidairo_recent_posts_fallback_where($where, $args) {
+    $excluded = voidairo_home_excluded_categories();
+    if (empty($args['voidairo_recent_posts']) || !$excluded) { return $where; }
+    global $wpdb;
+    return $where . " AND {$wpdb->posts}.ID NOT IN (SELECT tr.object_id FROM {$wpdb->term_relationships} tr INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'category' AND tt.term_id IN (" . implode(',', $excluded) . '))';
+}
+add_filter('getarchives_where', 'voidairo_recent_posts_fallback_where', 10, 2);
+
+// The Latest Posts block has no query filter, so scope a pre_get_posts hook to its render inside block widgets.
+function voidairo_latest_posts_block_start($parsed_block) {
+    if ('core/latest-posts' === ($parsed_block['blockName'] ?? '') && doing_filter('widget_block_content') && voidairo_home_excluded_categories()) {
+        add_action('pre_get_posts', 'voidairo_exclude_home_categories_from_widget_query');
+    }
+    return $parsed_block;
+}
+add_filter('render_block_data', 'voidairo_latest_posts_block_start');
+
+function voidairo_latest_posts_block_end($content) {
+    remove_action('pre_get_posts', 'voidairo_exclude_home_categories_from_widget_query');
+    return $content;
+}
+add_filter('render_block_core/latest-posts', 'voidairo_latest_posts_block_end');
+
+function voidairo_exclude_home_categories_from_widget_query($query) {
+    $query->set('category__not_in', voidairo_with_home_excluded_categories($query->get('category__not_in')));
+}
 
 function voidairo_meta_description() {
     if (is_singular()) {
@@ -359,6 +418,7 @@ function voidairo_sanitize_options($input) {
     $output['hero_subtitle'] = isset($input['hero_subtitle']) ? sanitize_text_field(wp_unslash($input['hero_subtitle'])) : '';
     $font = isset($input['font_preset']) ? sanitize_key(wp_unslash($input['font_preset'])) : $defaults['font_preset'];
     $output['font_preset'] = in_array($font, array('void', 'system', 'serif', 'chinese'), true) ? $font : $defaults['font_preset'];
+    $output['home_exclude_categories'] = isset($input['home_exclude_categories']) ? array_values(array_filter(wp_parse_id_list(wp_unslash($input['home_exclude_categories'])))) : array();
     return wp_parse_args($output, $defaults);
 }
 
@@ -423,6 +483,12 @@ function voidairo_settings_page() {
     echo '<tr><th scope="row"><label for="voidairo_hero_title">首页顶部大标题</label></th><td><input id="voidairo_hero_title" class="regular-text" type="text" name="voidairo_options[hero_title]" value="' . esc_attr($opts['hero_title']) . '" placeholder="' . esc_attr(get_bloginfo('name')) . '"></td></tr>';
     echo '<tr><th scope="row"><label for="voidairo_hero_subtitle">首页顶部小标题</label></th><td><input id="voidairo_hero_subtitle" class="regular-text" type="text" name="voidairo_options[hero_subtitle]" value="' . esc_attr($opts['hero_subtitle']) . '" placeholder="' . esc_attr(get_bloginfo('description')) . '"></td></tr>';
     echo '</tbody></table>';
+    $excluded_categories = voidairo_home_excluded_categories();
+    echo '<h2>首页文章列表</h2><table class="form-table" role="presentation"><tbody><tr><th scope="row">首页不显示的分类</th><td><fieldset><legend class="screen-reader-text">首页不显示的分类</legend>';
+    foreach (get_categories(array('hide_empty' => false)) as $category) {
+        echo '<label><input type="checkbox" name="voidairo_options[home_exclude_categories][]" value="' . esc_attr($category->term_id) . '" ' . checked(in_array((int) $category->term_id, $excluded_categories, true), true, false) . '> ' . esc_html($category->name) . '</label><br>';
+    }
+    echo '</fieldset><p class="description">勾选的分类不会出现在首页文章列表（包括置顶文章）和侧栏最新文章里；分类页、文章页、归档、搜索和 RSS 照常显示。都不勾选则首页显示全部文章。</p></td></tr></tbody></table>';
     echo '<h2>颜色与字体</h2><table class="form-table" role="presentation"><tbody><tr><th scope="row">深色模式</th><td><select name="voidairo_options[dark_mode]">';
     foreach ($dark_modes as $key => $label) { echo '<option value="' . esc_attr($key) . '" ' . selected($opts['dark_mode'], $key, false) . '>' . esc_html($label) . '</option>'; }
     echo '</select></td></tr><tr><th scope="row">预设字体</th><td><select name="voidairo_options[font_preset]">';
